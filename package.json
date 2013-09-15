@@ -1,0 +1,18 @@
+{
+    "auth": "eightyfour",
+    "email": "eightyfour@thinkuseful.de",
+    "engines": {
+        "node": ">= v0.10.0"
+    },
+    "name": "memory",
+    "description": "Memory card game",
+    "version": "0.0.1",
+    "main": "lib/server.js",
+    "dependencies": {
+        "socket.io": "x",
+        "express": "x",
+        "dnode" : "x",
+        "domready" : "x",
+        "shoe" : "x"
+    }
+}
