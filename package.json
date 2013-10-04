@@ -9,7 +9,7 @@
     "version": "0.1.0",
     "main": "lib/server.js",
     "dependencies": {
-        "socket.io": "0.9.16,
+        "socket.io": "0.9.16",
         "express": "3.4.0",
         "dnode" : "1.0.5",
         "domready" : "0.2.12",
