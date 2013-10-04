@@ -4,15 +4,15 @@
     "engines": {
         "node": ">= v0.10.0"
     },
-    "name": "memory",
+    "name": "memory-game",
     "description": "Memory card game",
-    "version": "0.0.1",
+    "version": "0.1.0",
     "main": "lib/server.js",
     "dependencies": {
-        "socket.io": "x",
-        "express": "x",
-        "dnode" : "x",
-        "domready" : "x",
-        "shoe" : "x"
+        "socket.io": "0.9.16,
+        "express": "3.4.0",
+        "dnode" : "1.0.5",
+        "domready" : "0.2.12",
+        "shoe" : "0.0.15"
     }
 }
