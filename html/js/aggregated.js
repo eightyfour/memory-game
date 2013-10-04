@@ -23,332 +23,6 @@ module.exports = {
 }
 
 },{}],2:[function(require,module,exports){
-/**
- *
- * @type {*}
- */
-var domready = require('domready');
-var domOpts = require('dom-opts');
-var shoe = require('shoe');
-var dnode = require('dnode');
-var toast = require('message-toast');
-var C = require('../../lib/CONSTANT.js');
-
-var user = {
-    id : undefined,
-    name : ''
-}
-var stream = shoe('/memory');
-var d = dnode();
-
-// publish domOpts
-window.domOpts = domOpts;
-// create game namespace
-window.game = window.game || {};
-
-domready(function() {
-
-    window.game.memo = new function(){
-        var that = this,
-            gameEvents = {
-                rootClickedQueue : [],
-                clearRootClickedQueue : function(){
-                    var fc = function(){};
-                    while(fc != undefined){
-                        fc = this.rootClickedQueue.pop();
-                        fc && fc();
-                    }
-                }
-            },
-            selectors = {
-                templates : "templates",
-                game : {
-                    rootId : 'board',
-                    state : {
-                        open : 'open',
-                        hidden : 'hidden',
-                        empty : 'empty'
-                    }
-                }
-            };
-        this.currentGameId;
-        //ui for the page interactions - not for the game (board)
-        this.ui = {
-            createNewGame : function(){
-                that.askServer.startNewGame(user.id,C.GAME_TYPES.SINGLE,function(gameId){
-                    that.currentGameId = gameId;
-                });
-            },
-            doSomeOtherPageinteractions : function(){}
-        }
-
-        this.con = {
-            connection : undefined,
-            server : {},
-            client : undefined,
-            ui : undefined,
-            error : undefined
-        }
-        // bound server methods here - talk to server
-        this.askServer;
-        // server callees called from server side
-        this.serverCallees = (function(){
-
-            var class_postfix = "nr_",
-                addClickEvent = function(card){
-                    card.addEventListener('click',function Select(e){
-                        var id = this.getAttribute('id');
-                        var position = id.split(class_postfix)[1];
-                        game.memo.askServer.takeCard(user.id,position);
-                        console.log('Ask server for take a card');
-                    },false)
-                },
-                serverMethods = {
-                    showToast : toast.showMessage,
-                    gameEnds : function(gameConf,gameState,gameStats){
-                        switch(gameState){
-                            case C.GAMESTATE.won:
-                            case C.GAMESTATE.lost:
-                            case C.GAMESTATE.draw:
-                            default:
-                                console.log('GAME STATE IS: '+gameState);
-                        }
-                        toast.showMessage('-- Matches: '+gameStats.matches+' --');
-                        toast.showMessage('-- Failed: '+gameStats.failed+' --');
-                        toast.showMessage('-- Tries: '+gameStats.tries+' --');
-                        toast.showMessage('- Statistics: -');
-                    },
-                    showMatchedCard : function(gameConf,firstCard,secondCard){
-                        serverMethods.showCard(gameConf,secondCard);
-                        setTimeout(function(){
-                            if(gameConf.gameId == document.getElementById(selectors.game.rootId).getAttribute('gameId')){
-                                serverMethods.removeCard(gameConf,firstCard);
-                                serverMethods.removeCard(gameConf,secondCard);
-                            }
-                        },2e3);
-                    },
-                    showCard : function(gameConf,card){
-                        var cardNode = document.getElementById(class_postfix+card.position);
-                        cardNode.domRemoveClass(selectors.game.state.hidden).domAddClass(card.type+' '+selectors.game.state.open);
-                    },
-                    hideCard : function(gameConf,card){
-                        var cardNode = document.getElementById(class_postfix+card.position);
-                        var callMeHasBeenCalled = false;
-                        var callMe = function(){
-                            if(callMeHasBeenCalled === false){
-                                timer.hasOwnProperty('clearTimeout') && timer.clearTimeout();
-                                cardNode.domRemoveClass(card.type+ ' '+selectors.game.state.open).domAddClass(selectors.game.state.hidden);
-                                callMeHasBeenCalled = true;
-                            }
-                        }
-                        var timer = setTimeout(function(){
-                            callMe();
-                        },2e3);
-                        gameEvents.rootClickedQueue.push(callMe);
-                    },
-                    removeCard : function(gameConf,card){
-                        var cardNode = document.getElementById(class_postfix+card.position);
-                        cardNode.domRemoveClass().domAddClass(selectors.game.state.empty+' card');
-                    },
-                    clearBoard : function(){
-                        var root = document.getElementById(selectors.game.rootId),
-                            cards = Array.prototype.slice.call(document.getElementById(selectors.game.rootId).children);
-                        cards.forEach(function(node){
-                            root.removeChild(node);
-                        });
-                    },
-                    generateBoard : function(gameConf,numberOfcards){
-                        var root = document.getElementById(selectors.game.rootId);
-                        root.setAttribute('gameId',gameConf.gameId);
-                        for (var i = 0; i < numberOfcards; i++) {
-                            var node = domOpts.createElement('div',
-                                class_postfix + i,'card').domAppendTo(root);
-                            addClickEvent(node);
-                        }
-                    }
-                };
-            // register click lister to board root
-            document.getElementById(selectors.game.rootId).
-                addEventListener('click',function ClickListener(){
-                    console.log('Register a click');
-                    gameEvents.clearRootClickedQueue();
-                },false);
-
-            return serverMethods;
-        })();
-    };
-
-
-    user.name = window.prompt('Enter your name please');
-
-    d.on('remote', function (server) {
-        game.memo.askServer = server;
-        console.log('Connected!',server);
-        game.memo.askServer.registerUser( game.memo.serverCallees,user, function(id){
-            user.id = id;
-            game.memo.askServer.startNewGame(user.id,C.GAME_TYPES.SINGLE,function(gameId){
-                game.memo.currentGameId = gameId;
-            });
-        });
-    });
-    d.pipe(stream).pipe(d);
-});
-},{"../../lib/CONSTANT.js":1,"domready":3,"dom-opts":4,"shoe":5,"dnode":6,"message-toast":7}],4:[function(require,module,exports){
-var domOpts = {};
-
-domOpts.params = (function(){
-    var params = {};
-    if (location.search) {
-        var parts = location.search.substring(1).split('&');
-        for (var i = 0; i < parts.length; i++) {
-            var nv = parts[i].split('=');
-            if (!nv[0]) continue;
-            params[nv[0]] = nv[1] || true;
-        }
-    }
-    return params;
-})();
-
-domOpts.createElement = function(tag,id,classes){
-    var newNode = document.createElement(tag);
-    if(id){newNode.setAttribute('id',id);}
-    if(classes){newNode.setAttribute('class',classes);}
-    return newNode;
-};
-module.exports =  domOpts;
-
-// dom operations:
-HTMLElement.prototype.domAddClass = function(addClasses){
-    console.log('add class und so');
-    this.setAttribute('class',this.getAttribute('class')+' '+addClasses);
-    return this;
-}
-HTMLElement.prototype.domRemoveClass = function(removeableClasses){
-    var removeClasses = (removeableClasses && removeableClasses.split(' ')) || this.getAttribute('class').split(' ');
-    var currentClasses = this.getAttribute('class').split(' ');
-    for (var i = 0; i < removeClasses.length; i++) {
-        var idx = currentClasses.indexOf(removeClasses[i]);
-        if(idx >=0 ){
-            currentClasses = currentClasses.slice(0,idx).concat(currentClasses.slice(idx+1,currentClasses.length-1))
-        }
-    }
-    this.setAttribute('class',currentClasses.join(' '));
-    return this;
-}
-HTMLElement.prototype.domRemove = function(){
-    this.parentNode.removeChild(this);
-}
-
-HTMLElement.prototype.domAppendTo = function(node){
-    node.appendChild(this);
-    return this;
-}
-},{}],7:[function(require,module,exports){
-(function(){/**
- * TODO fade out are flickered if maxLengthOfMessages exceeded
- * @param id
- * @return {Object}
- * @constructor
- */
-var toast = new (function Toast(id){
-    var DELAY = 4000,
-    opacityFadeSteps = 0.04,
-    maxLengthOfMessages = 4,
-    toastNode = document.getElementById(id),
-    isReadyForStartAgain = true,
-    newMessage = true,
-    initToast = function(){
-        var rootNode = document.getElementsByTagName('body')[0];
-        toastNode = document.createElement('div');
-        toastNode.id = id;
-        toastNode.style.cssText = "position:fixed;z-index:999;top:30px;right:10px;border-radius:5px;color:#fff;font-size:15px;font-weight:bold;background-color:black;"
-        rootNode.appendChild(toastNode);
-    }
-    ,toast = {
-        fadeOut : function(_node,_done){
-            var node = _node;
-            var done = _done;
-            var opacity = 1;
-            (function decrementOpacity(){
-                if(opacity > opacityFadeSteps){
-                    opacity = opacity - opacityFadeSteps;
-                    node.style.opacity = opacity;
-                    setTimeout(function(){
-                        decrementOpacity();
-                    },40);
-                }else{
-                    if(node.parentNode != null){
-                        node.parentNode.removeChild(node);
-                    }
-                    done();
-                }
-            })();
-        },
-        showMessage : function(msg){
-            if(!toastNode){
-                initToast()
-            }
-            toastNode.style.opacity = 1;
-            var p = document.createElement('p');
-            p.style.cssText = "padding:0px 10px";
-            p.innerHTML = msg;
-            toastNode.insertBefore(p,toastNode.firstChild);
-            (function fadeOutToMuchMessages(){
-                if(toastNode.childNodes.length > maxLengthOfMessages){
-                    toast.fadeOut(toastNode.children[toastNode.children.length-1],function(){
-                        fadeOutToMuchMessages();
-                    });
-                }
-            })();
-            var timeOut = DELAY;
-            newMessage = true;
-            function fadeOut(_fc){
-                var fc = _fc;
-                var opacity = toastNode.style.opacity;
-                if(opacity > opacityFadeSteps){
-                    if(newMessage) {
-                        // resetMessage
-                        newMessage = false;
-                        timeOut = DELAY;
-                        toastNode.style.opacity = 1;
-                    }else {
-                        opacity = opacity-opacityFadeSteps;
-                        toastNode.style.opacity = opacity;
-                        timeOut = 40;
-                    }
-                    // start timer
-                    setTimeout(function(){
-                        fadeOut(fc);
-                    },timeOut);
-                }else{
-                    while( toastNode.firstChild ){
-                        toastNode.removeChild( toastNode.firstChild );
-                    }
-                    // callback
-                    fc(true);
-                }
-            }
-            if(isReadyForStartAgain){
-                isReadyForStartAgain = false;
-                timeOut = DELAY;
-                fadeOut(function(_b){
-                    isReadyForStartAgain = true;
-                });
-            }
-        }
-    };
-    return toast;
-})('toast');
-
-if(typeof module != "undefined"){
-    console.log('exports');
-    module.exports = toast;
-}else {
-    console.log('asign to global scope');
-    window.toast = toast;
-}
-})()
-},{}],3:[function(require,module,exports){
 /*!
   * domready (c) Dustin Diaz 2012 - License MIT
   */
@@ -404,439 +78,276 @@ if(typeof module != "undefined"){
       loaded ? fn() : fns.push(fn)
     })
 })
-},{}],5:[function(require,module,exports){
-var Stream = require('stream');
-var sockjs = require('sockjs-client');
-var resolve = require('url').resolve;
-
-module.exports = function (u, cb) {
-    var uri = resolve(window.location.href, u);
-    
-    var stream = new Stream;
-    stream.readable = true;
-    stream.writable = true;
-    
-    var ready = false;
-    var buffer = [];
-    
-    var sock = sockjs(uri);
-    stream.sock = sock;
-    
-    stream.write = function (msg) {
-        if (!ready || buffer.length) buffer.push(msg)
-        else sock.send(msg)
-    };
-    
-    stream.end = function (msg) {
-        if (msg !== undefined) stream.write(msg);
-        if (!ready) {
-            stream._ended = true;
-            return;
-        }
-        stream.writable = false;
-        sock.close();
-    };
-    
-    stream.destroy = function () {
-        stream._ended = true;
-        stream.writable = stream.readable = false;
-        buffer.length = 0
-        sock.close();
-    };
-    
-    sock.onopen = function () {
-        if (typeof cb === 'function') cb();
-        ready = true;
-        for (var i = 0; i < buffer.length; i++) {
-            sock.send(buffer[i]);
-        }
-        buffer = [];
-        stream.emit('connect');
-        if (stream._ended) stream.end();
-    };
-    
-    sock.onmessage = function (e) {
-        stream.emit('data', e.data);
-    };
-    
-    sock.onclose = function () {
-        stream.emit('end');
-        stream.writable = false;
-        stream.readable = false;
-    };
-    
-    return stream;
-};
-
-},{"stream":8,"url":9,"sockjs-client":10}],8:[function(require,module,exports){
-var events = require('events');
-var util = require('util');
-
-function Stream() {
-  events.EventEmitter.call(this);
-}
-util.inherits(Stream, events.EventEmitter);
-module.exports = Stream;
-// Backwards-compat with node 0.4.x
-Stream.Stream = Stream;
-
-Stream.prototype.pipe = function(dest, options) {
-  var source = this;
-
-  function ondata(chunk) {
-    if (dest.writable) {
-      if (false === dest.write(chunk) && source.pause) {
-        source.pause();
-      }
-    }
-  }
-
-  source.on('data', ondata);
-
-  function ondrain() {
-    if (source.readable && source.resume) {
-      source.resume();
-    }
-  }
-
-  dest.on('drain', ondrain);
-
-  // If the 'end' option is not supplied, dest.end() will be called when
-  // source gets the 'end' or 'close' events.  Only dest.end() once, and
-  // only when all sources have ended.
-  if (!dest._isStdio && (!options || options.end !== false)) {
-    dest._pipeCount = dest._pipeCount || 0;
-    dest._pipeCount++;
-
-    source.on('end', onend);
-    source.on('close', onclose);
-  }
-
-  var didOnEnd = false;
-  function onend() {
-    if (didOnEnd) return;
-    didOnEnd = true;
-
-    dest._pipeCount--;
-
-    // remove the listeners
-    cleanup();
-
-    if (dest._pipeCount > 0) {
-      // waiting for other incoming streams to end.
-      return;
-    }
-
-    dest.end();
-  }
-
-
-  function onclose() {
-    if (didOnEnd) return;
-    didOnEnd = true;
-
-    dest._pipeCount--;
-
-    // remove the listeners
-    cleanup();
-
-    if (dest._pipeCount > 0) {
-      // waiting for other incoming streams to end.
-      return;
-    }
-
-    dest.destroy();
-  }
-
-  // don't leave dangling pipes when there are errors.
-  function onerror(er) {
-    cleanup();
-    if (this.listeners('error').length === 0) {
-      throw er; // Unhandled stream error in pipe.
-    }
-  }
-
-  source.on('error', onerror);
-  dest.on('error', onerror);
-
-  // remove all the event listeners that were added.
-  function cleanup() {
-    source.removeListener('data', ondata);
-    dest.removeListener('drain', ondrain);
-
-    source.removeListener('end', onend);
-    source.removeListener('close', onclose);
-
-    source.removeListener('error', onerror);
-    dest.removeListener('error', onerror);
-
-    source.removeListener('end', cleanup);
-    source.removeListener('close', cleanup);
-
-    dest.removeListener('end', cleanup);
-    dest.removeListener('close', cleanup);
-  }
-
-  source.on('end', cleanup);
-  source.on('close', cleanup);
-
-  dest.on('end', cleanup);
-  dest.on('close', cleanup);
-
-  dest.emit('pipe', source);
-
-  // Allow for unix-like usage: A.pipe(B).pipe(C)
-  return dest;
-};
-
-},{"events":11,"util":12}],6:[function(require,module,exports){
+},{}],3:[function(require,module,exports){
 var dnode = require('./lib/dnode');
 
 module.exports = function (cons, opts) {
     return new dnode(cons, opts);
 };
 
-},{"./lib/dnode":13}],14:[function(require,module,exports){
-// shim for using process in browser
+},{"./lib/dnode":4}],5:[function(require,module,exports){
+/**
+ *
+ * @type {*}
+ */
+var domready = require('domready');
+var domOpts = require('dom-opts');
+var shoe = require('shoe');
+var dnode = require('dnode');
+var toast = require('message-toast');
+var C = require('../../lib/CONSTANT.js');
 
-var process = module.exports = {};
+var user = {
+    id : undefined,
+    name : ''
+}
+var stream = shoe('/memory');
+var d = dnode();
 
-process.nextTick = (function () {
-    var canSetImmediate = typeof window !== 'undefined'
-    && window.setImmediate;
-    var canPost = typeof window !== 'undefined'
-    && window.postMessage && window.addEventListener
-    ;
+// publish domOpts
+window.domOpts = domOpts;
+// create game namespace
+window.game = window.game || {};
 
-    if (canSetImmediate) {
-        return function (f) { return window.setImmediate(f) };
-    }
+domready(function() {
 
-    if (canPost) {
-        var queue = [];
-        window.addEventListener('message', function (ev) {
-            if (ev.source === window && ev.data === 'process-tick') {
-                ev.stopPropagation();
-                if (queue.length > 0) {
-                    var fn = queue.shift();
-                    fn();
+    window.game.memo = new function(){
+        var that = this,
+            gameEvents = {
+                rootClickedQueue : [],
+                clearRootClickedQueue : function(){
+                    var fc = function(){};
+                    while(fc != undefined){
+                        fc = this.rootClickedQueue.pop();
+                        fc && fc();
+                    }
                 }
-            }
-        }, true);
+            },
+            selectors = {
+                templates : "templates",
+                game : {
+                    rootId : 'board',
+                    state : {
+                        open : 'open',
+                        hidden : 'hidden',
+                        empty : 'empty'
+                    }
+                }
+            },
+            getImage = function (type) {
+                var img = new Image();
+                img.src = 'images/animals/' + type + '.png';
+                img.alt = type;
+                img.width = 100;
+                img.height = 100;
+                return img;
+            },
+            fadeoutImage = function (img) {
+                var delay = 20,
+                    pixelSteps = 2,
+                    scaleImage = function(){
+                        var w = img.width,
+                            h = img.height,wDone = false,hDone = false;
+                        if (w > 0) {
+                            img.width = w-pixelSteps;
+                            img.style.paddingTop = (parseInt(img.style.paddingTop ? img.style.paddingTop : 0, 10) + pixelSteps/2)+'px';
+                        } else {
+                            wDone = true;
+                        }
+                        if (h > 0) {
+                            img.height = h-pixelSteps;
+                            img.style.paddingLeft = (parseInt(img.style.paddingLeft ? img.style.paddingLeft : 0,10) + pixelSteps/2)+'px';
 
-        return function nextTick(fn) {
-            queue.push(fn);
-            window.postMessage('process-tick', '*');
-        };
-    }
+                        } else {
+                            hDone = true;
+                        }
+                        if (!wDone && !hDone) {
+                            setTimeout(scaleImage,delay);
+                        } else {
+                            img.parentNode.removeChild(img);
+                        }
+                    }
+                scaleImage();
+            };
 
-    return function nextTick(fn) {
-        setTimeout(fn, 0);
+        this.currentGameId;
+        //ui for the page interactions - not for the game (board)
+        this.ui = {
+            createNewGame : function(){
+                that.askServer.startNewGame(user.id,
+                    { gametype : C.GAME_TYPES.SINGLE, numberOfSymbols : 8 },
+                    function(gameId){
+                    that.currentGameId = gameId;
+                });
+            },
+            doSomeOtherPageinteractions : function(){}
+        }
+
+        this.con = {
+            connection : undefined,
+            server : {},
+            client : undefined,
+            ui : undefined,
+            error : undefined
+        }
+        // bound server methods here - talk to server
+        this.askServer;
+        // server callees called from server side
+        this.serverCallees = (function(){
+
+            var class_postfix = "nr_",
+                addClickEvent = function(card){
+                    card.addEventListener('click',function Select(e){
+                        var id = this.getAttribute('id');
+                        var position = id.split(class_postfix)[1];
+                        game.memo.askServer.takeCard(user.id,position);
+                        console.log('Ask server for take a card');
+                    },false)
+                },
+                serverMethods = {
+                    showToast : toast.showMessage,
+                    gameEnds : function(gameConf,gameState,gameStats){
+                        switch(gameState){
+                            case C.GAMESTATE.won:
+                            case C.GAMESTATE.lost:
+                            case C.GAMESTATE.draw:
+                            default:
+                                console.log('GAME STATE IS: '+gameState);
+                        }
+                        toast.showMessage('-- Matches: '+gameStats.matches+' --');
+                        toast.showMessage('-- Failed: '+gameStats.failed+' --');
+                        toast.showMessage('-- Tries: '+gameStats.tries+' --');
+                        toast.showMessage('- Statistics: -');
+                    },
+                    showMatchedCard : function(gameConf,firstCard,secondCard){
+                        serverMethods.showCard(gameConf,secondCard);
+                        setTimeout(function(){
+                            if(gameConf.gameId == document.getElementById(selectors.game.rootId).getAttribute('gameId')){
+                                serverMethods.removeCard(gameConf,firstCard);
+                                serverMethods.removeCard(gameConf,secondCard);
+                            }
+                        },2e3);
+                    },
+                    showCard : function(gameConf,card){
+                        var cardNode = document.getElementById(class_postfix+card.position);
+                        cardNode.domRemoveClass(selectors.game.state.hidden).domAddClass(card.type+' '+selectors.game.state.open);
+                        cardNode.appendChild(getImage(card.type));
+                    },
+                    hideCard : function(gameConf,card){
+                        var cardNode = document.getElementById(class_postfix+card.position);
+                        var callMeHasBeenCalled = false;
+                        var callMe = function(){
+                            if(callMeHasBeenCalled === false){
+                                timer.hasOwnProperty('clearTimeout') && timer.clearTimeout();
+                                cardNode.domRemoveClass(card.type+ ' '+selectors.game.state.open).domAddClass(selectors.game.state.hidden);
+                                cardNode.innerHTML = '';
+                                callMeHasBeenCalled = true;
+                            }
+                        }
+                        var timer = setTimeout(function(){
+                            callMe();
+                        },2e3);
+                        gameEvents.rootClickedQueue.push(callMe);
+                    },
+                    removeCard : function(gameConf,card){
+                        var cardNode = document.getElementById(class_postfix+card.position);
+                        cardNode.domRemoveClass().domAddClass(selectors.game.state.empty+' card');
+                        fadeoutImage(cardNode.children[0])
+                    },
+                    clearBoard : function(){
+                        var root = document.getElementById(selectors.game.rootId),
+                            cards = Array.prototype.slice.call(document.getElementById(selectors.game.rootId).children);
+                        cards.forEach(function(node){
+                            root.removeChild(node);
+                        });
+                    },
+                    generateBoard : function(gameConf,numberOfcards){
+                        var root = document.getElementById(selectors.game.rootId);
+                        root.setAttribute('gameId',gameConf.gameId);
+                        for (var i = 0; i < numberOfcards; i++) {
+                            var node = domOpts.createElement('div',
+                                class_postfix + i,'card').domAppendTo(root);
+                            addClickEvent(node);
+                        }
+                    }
+                };
+            // register click lister to board root
+            document.getElementById(selectors.game.rootId).
+                addEventListener('click',function ClickListener(){
+                    console.log('Register a click');
+                    gameEvents.clearRootClickedQueue();
+                },false);
+
+            return serverMethods;
+        })();
     };
+
+
+    user.name = window.prompt('Enter your name please');
+
+    d.on('remote', function (server) {
+        game.memo.askServer = server;
+        console.log('Connected!',server);
+        game.memo.askServer.registerUser( game.memo.serverCallees,user, function(id){
+            user.id = id;
+            game.memo.askServer.startNewGame(user.id,{ gametype : C.GAME_TYPES.SINGLE, numberOfSymbols : 8 },function(gameId){
+                game.memo.currentGameId = gameId;
+            });
+        });
+    });
+    d.pipe(stream).pipe(d);
+});
+},{"../../lib/CONSTANT.js":1,"shoe":6,"dnode":3,"domready":2,"dom-opts":7,"message-toast":8}],7:[function(require,module,exports){
+var domOpts = {};
+
+domOpts.params = (function(){
+    var params = {};
+    if (location.search) {
+        var parts = location.search.substring(1).split('&');
+        for (var i = 0; i < parts.length; i++) {
+            var nv = parts[i].split('=');
+            if (!nv[0]) continue;
+            params[nv[0]] = nv[1] || true;
+        }
+    }
+    return params;
 })();
 
-process.title = 'browser';
-process.browser = true;
-process.env = {};
-process.argv = [];
-
-process.binding = function (name) {
-    throw new Error('process.binding is not supported');
-}
-
-// TODO(shtylman)
-process.cwd = function () { return '/' };
-process.chdir = function (dir) {
-    throw new Error('process.chdir is not supported');
+domOpts.createElement = function(tag,id,classes){
+    var newNode = document.createElement(tag);
+    if(id){newNode.setAttribute('id',id);}
+    if(classes){newNode.setAttribute('class',classes);}
+    return newNode;
 };
+module.exports =  domOpts;
 
-},{}],11:[function(require,module,exports){
-(function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
-
-var EventEmitter = exports.EventEmitter = process.EventEmitter;
-var isArray = typeof Array.isArray === 'function'
-    ? Array.isArray
-    : function (xs) {
-        return Object.prototype.toString.call(xs) === '[object Array]'
-    }
-;
-function indexOf (xs, x) {
-    if (xs.indexOf) return xs.indexOf(x);
-    for (var i = 0; i < xs.length; i++) {
-        if (x === xs[i]) return i;
-    }
-    return -1;
-}
-
-// By default EventEmitters will print a warning if more than
-// 10 listeners are added to it. This is a useful default which
-// helps finding memory leaks.
-//
-// Obviously not all Emitters should be limited to 10. This function allows
-// that to be increased. Set to zero for unlimited.
-var defaultMaxListeners = 10;
-EventEmitter.prototype.setMaxListeners = function(n) {
-  if (!this._events) this._events = {};
-  this._events.maxListeners = n;
-};
-
-
-EventEmitter.prototype.emit = function(type) {
-  // If there is no 'error' event listener then throw.
-  if (type === 'error') {
-    if (!this._events || !this._events.error ||
-        (isArray(this._events.error) && !this._events.error.length))
-    {
-      if (arguments[1] instanceof Error) {
-        throw arguments[1]; // Unhandled 'error' event
-      } else {
-        throw new Error("Uncaught, unspecified 'error' event.");
-      }
-      return false;
-    }
-  }
-
-  if (!this._events) return false;
-  var handler = this._events[type];
-  if (!handler) return false;
-
-  if (typeof handler == 'function') {
-    switch (arguments.length) {
-      // fast cases
-      case 1:
-        handler.call(this);
-        break;
-      case 2:
-        handler.call(this, arguments[1]);
-        break;
-      case 3:
-        handler.call(this, arguments[1], arguments[2]);
-        break;
-      // slower
-      default:
-        var args = Array.prototype.slice.call(arguments, 1);
-        handler.apply(this, args);
-    }
-    return true;
-
-  } else if (isArray(handler)) {
-    var args = Array.prototype.slice.call(arguments, 1);
-
-    var listeners = handler.slice();
-    for (var i = 0, l = listeners.length; i < l; i++) {
-      listeners[i].apply(this, args);
-    }
-    return true;
-
-  } else {
-    return false;
-  }
-};
-
-// EventEmitter is defined in src/node_events.cc
-// EventEmitter.prototype.emit() is also defined there.
-EventEmitter.prototype.addListener = function(type, listener) {
-  if ('function' !== typeof listener) {
-    throw new Error('addListener only takes instances of Function');
-  }
-
-  if (!this._events) this._events = {};
-
-  // To avoid recursion in the case that type == "newListeners"! Before
-  // adding it to the listeners, first emit "newListeners".
-  this.emit('newListener', type, listener);
-
-  if (!this._events[type]) {
-    // Optimize the case of one listener. Don't need the extra array object.
-    this._events[type] = listener;
-  } else if (isArray(this._events[type])) {
-
-    // Check for listener leak
-    if (!this._events[type].warned) {
-      var m;
-      if (this._events.maxListeners !== undefined) {
-        m = this._events.maxListeners;
-      } else {
-        m = defaultMaxListeners;
-      }
-
-      if (m && m > 0 && this._events[type].length > m) {
-        this._events[type].warned = true;
-        console.error('(node) warning: possible EventEmitter memory ' +
-                      'leak detected. %d listeners added. ' +
-                      'Use emitter.setMaxListeners() to increase limit.',
-                      this._events[type].length);
-        console.trace();
-      }
-    }
-
-    // If we've already got an array, just append.
-    this._events[type].push(listener);
-  } else {
-    // Adding the second element, need to change to array.
-    this._events[type] = [this._events[type], listener];
-  }
-
-  return this;
-};
-
-EventEmitter.prototype.on = EventEmitter.prototype.addListener;
-
-EventEmitter.prototype.once = function(type, listener) {
-  var self = this;
-  self.on(type, function g() {
-    self.removeListener(type, g);
-    listener.apply(this, arguments);
-  });
-
-  return this;
-};
-
-EventEmitter.prototype.removeListener = function(type, listener) {
-  if ('function' !== typeof listener) {
-    throw new Error('removeListener only takes instances of Function');
-  }
-
-  // does not use listeners(), so no side effect of creating _events[type]
-  if (!this._events || !this._events[type]) return this;
-
-  var list = this._events[type];
-
-  if (isArray(list)) {
-    var i = indexOf(list, listener);
-    if (i < 0) return this;
-    list.splice(i, 1);
-    if (list.length == 0)
-      delete this._events[type];
-  } else if (this._events[type] === listener) {
-    delete this._events[type];
-  }
-
-  return this;
-};
-
-EventEmitter.prototype.removeAllListeners = function(type) {
-  if (arguments.length === 0) {
-    this._events = {};
+// dom operations:
+HTMLElement.prototype.domAddClass = function(addClasses){
+    console.log('add class und so');
+    this.setAttribute('class',this.getAttribute('class')+' '+addClasses);
     return this;
-  }
+}
+HTMLElement.prototype.domRemoveClass = function(removeableClasses){
+    var removeClasses = (removeableClasses && removeableClasses.split(' ')) || this.getAttribute('class').split(' ');
+    var currentClasses = this.getAttribute('class').split(' ');
+    for (var i = 0; i < removeClasses.length; i++) {
+        var idx = currentClasses.indexOf(removeClasses[i]);
+        if(idx >=0 ){
+            currentClasses = currentClasses.slice(0,idx).concat(currentClasses.slice(idx+1,currentClasses.length-1))
+        }
+    }
+    this.setAttribute('class',currentClasses.join(' '));
+    return this;
+}
+HTMLElement.prototype.domRemove = function(){
+    this.parentNode.removeChild(this);
+}
 
-  // does not use listeners(), so no side effect of creating _events[type]
-  if (type && this._events && this._events[type]) this._events[type] = null;
-  return this;
-};
-
-EventEmitter.prototype.listeners = function(type) {
-  if (!this._events) this._events = {};
-  if (!this._events[type]) this._events[type] = [];
-  if (!isArray(this._events[type])) {
-    this._events[type] = [this._events[type]];
-  }
-  return this._events[type];
-};
-
-})(require("__browserify_process"))
-},{"__browserify_process":14}],9:[function(require,module,exports){
+HTMLElement.prototype.domAppendTo = function(node){
+    node.appendChild(this);
+    return this;
+}
+},{}],9:[function(require,module,exports){
 var punycode = { encode : function (s) { return s } };
 
 exports.parse = urlParse;
@@ -1442,7 +953,550 @@ function parseHost(host) {
   return out;
 }
 
-},{"querystring":15}],12:[function(require,module,exports){
+},{"querystring":10}],11:[function(require,module,exports){
+var events = require('events');
+var util = require('util');
+
+function Stream() {
+  events.EventEmitter.call(this);
+}
+util.inherits(Stream, events.EventEmitter);
+module.exports = Stream;
+// Backwards-compat with node 0.4.x
+Stream.Stream = Stream;
+
+Stream.prototype.pipe = function(dest, options) {
+  var source = this;
+
+  function ondata(chunk) {
+    if (dest.writable) {
+      if (false === dest.write(chunk) && source.pause) {
+        source.pause();
+      }
+    }
+  }
+
+  source.on('data', ondata);
+
+  function ondrain() {
+    if (source.readable && source.resume) {
+      source.resume();
+    }
+  }
+
+  dest.on('drain', ondrain);
+
+  // If the 'end' option is not supplied, dest.end() will be called when
+  // source gets the 'end' or 'close' events.  Only dest.end() once, and
+  // only when all sources have ended.
+  if (!dest._isStdio && (!options || options.end !== false)) {
+    dest._pipeCount = dest._pipeCount || 0;
+    dest._pipeCount++;
+
+    source.on('end', onend);
+    source.on('close', onclose);
+  }
+
+  var didOnEnd = false;
+  function onend() {
+    if (didOnEnd) return;
+    didOnEnd = true;
+
+    dest._pipeCount--;
+
+    // remove the listeners
+    cleanup();
+
+    if (dest._pipeCount > 0) {
+      // waiting for other incoming streams to end.
+      return;
+    }
+
+    dest.end();
+  }
+
+
+  function onclose() {
+    if (didOnEnd) return;
+    didOnEnd = true;
+
+    dest._pipeCount--;
+
+    // remove the listeners
+    cleanup();
+
+    if (dest._pipeCount > 0) {
+      // waiting for other incoming streams to end.
+      return;
+    }
+
+    dest.destroy();
+  }
+
+  // don't leave dangling pipes when there are errors.
+  function onerror(er) {
+    cleanup();
+    if (this.listeners('error').length === 0) {
+      throw er; // Unhandled stream error in pipe.
+    }
+  }
+
+  source.on('error', onerror);
+  dest.on('error', onerror);
+
+  // remove all the event listeners that were added.
+  function cleanup() {
+    source.removeListener('data', ondata);
+    dest.removeListener('drain', ondrain);
+
+    source.removeListener('end', onend);
+    source.removeListener('close', onclose);
+
+    source.removeListener('error', onerror);
+    dest.removeListener('error', onerror);
+
+    source.removeListener('end', cleanup);
+    source.removeListener('close', cleanup);
+
+    dest.removeListener('end', cleanup);
+    dest.removeListener('close', cleanup);
+  }
+
+  source.on('end', cleanup);
+  source.on('close', cleanup);
+
+  dest.on('end', cleanup);
+  dest.on('close', cleanup);
+
+  dest.emit('pipe', source);
+
+  // Allow for unix-like usage: A.pipe(B).pipe(C)
+  return dest;
+};
+
+},{"events":12,"util":13}],6:[function(require,module,exports){
+var Stream = require('stream');
+var sockjs = require('sockjs-client');
+var resolve = require('url').resolve;
+var parse = require('url').parse;
+
+module.exports = function (u, cb) {
+    var uri = parse(u).protocol ? u : resolve(window.location.href, u);
+    
+    var stream = new Stream;
+    stream.readable = true;
+    stream.writable = true;
+    
+    var ready = false;
+    var buffer = [];
+    
+    var sock = sockjs(uri);
+    stream.sock = sock;
+    
+    stream.write = function (msg) {
+        if (!ready || buffer.length) buffer.push(msg)
+        else sock.send(msg)
+    };
+    
+    stream.end = function (msg) {
+        if (msg !== undefined) stream.write(msg);
+        if (!ready) {
+            stream._ended = true;
+            return;
+        }
+        stream.writable = false;
+        sock.close();
+    };
+    
+    stream.destroy = function () {
+        stream._ended = true;
+        stream.writable = stream.readable = false;
+        buffer.length = 0
+        sock.close();
+    };
+    
+    sock.onopen = function () {
+        if (typeof cb === 'function') cb();
+        ready = true;
+        for (var i = 0; i < buffer.length; i++) {
+            sock.send(buffer[i]);
+        }
+        buffer = [];
+        stream.emit('connect');
+        if (stream._ended) stream.end();
+    };
+    
+    sock.onmessage = function (e) {
+        stream.emit('data', e.data);
+    };
+    
+    sock.onclose = function () {
+        stream.emit('end');
+        stream.writable = false;
+        stream.readable = false;
+    };
+    
+    return stream;
+};
+
+},{"stream":11,"url":9,"sockjs-client":14}],8:[function(require,module,exports){
+(function(){/**
+ * TODO fade out are flickered if maxLengthOfMessages exceeded
+ * @param id
+ * @return {Object}
+ * @constructor
+ */
+var toast = new (function Toast(id){
+    var DELAY = 4000,
+    opacityFadeSteps = 0.04,
+    maxLengthOfMessages = 4,
+    toastNode = document.getElementById(id),
+    isReadyForStartAgain = true,
+    newMessage = true,
+    initToast = function(){
+        var rootNode = document.getElementsByTagName('body')[0];
+        toastNode = document.createElement('div');
+        toastNode.id = id;
+        toastNode.style.cssText = "position:fixed;z-index:999;top:30px;right:10px;border-radius:5px;color:#fff;font-size:15px;font-weight:bold;background-color:black;"
+        rootNode.appendChild(toastNode);
+    }
+    ,toast = {
+        fadeOut : function(_node,_done){
+            var node = _node;
+            var done = _done;
+            var opacity = 1;
+            (function decrementOpacity(){
+                if(opacity > opacityFadeSteps){
+                    opacity = opacity - opacityFadeSteps;
+                    node.style.opacity = opacity;
+                    setTimeout(function(){
+                        decrementOpacity();
+                    },40);
+                }else{
+                    if(node.parentNode != null){
+                        node.parentNode.removeChild(node);
+                    }
+                    done();
+                }
+            })();
+        },
+        showMessage : function(msg){
+            if(!toastNode){
+                initToast()
+            }
+            toastNode.style.opacity = 1;
+            var p = document.createElement('p');
+            p.style.cssText = "padding:0px 10px";
+            p.innerHTML = msg;
+            toastNode.insertBefore(p,toastNode.firstChild);
+            (function fadeOutToMuchMessages(){
+                if(toastNode.childNodes.length > maxLengthOfMessages){
+                    toast.fadeOut(toastNode.children[toastNode.children.length-1],function(){
+                        fadeOutToMuchMessages();
+                    });
+                }
+            })();
+            var timeOut = DELAY;
+            newMessage = true;
+            function fadeOut(_fc){
+                var fc = _fc;
+                var opacity = toastNode.style.opacity;
+                if(opacity > opacityFadeSteps){
+                    if(newMessage) {
+                        // resetMessage
+                        newMessage = false;
+                        timeOut = DELAY;
+                        toastNode.style.opacity = 1;
+                    }else {
+                        opacity = opacity-opacityFadeSteps;
+                        toastNode.style.opacity = opacity;
+                        timeOut = 40;
+                    }
+                    // start timer
+                    setTimeout(function(){
+                        fadeOut(fc);
+                    },timeOut);
+                }else{
+                    while( toastNode.firstChild ){
+                        toastNode.removeChild( toastNode.firstChild );
+                    }
+                    // callback
+                    fc(true);
+                }
+            }
+            if(isReadyForStartAgain){
+                isReadyForStartAgain = false;
+                timeOut = DELAY;
+                fadeOut(function(_b){
+                    isReadyForStartAgain = true;
+                });
+            }
+        }
+    };
+    return toast;
+})('toast');
+
+if(typeof module != "undefined"){
+    console.log('exports');
+    module.exports = toast;
+}else {
+    console.log('asign to global scope');
+    window.toast = toast;
+}
+})()
+},{}],10:[function(require,module,exports){
+var isArray = typeof Array.isArray === 'function'
+    ? Array.isArray
+    : function (xs) {
+        return Object.prototype.toString.call(xs) === '[object Array]'
+    };
+
+var objectKeys = Object.keys || function objectKeys(object) {
+    if (object !== Object(object)) throw new TypeError('Invalid object');
+    var keys = [];
+    for (var key in object) if (object.hasOwnProperty(key)) keys[keys.length] = key;
+    return keys;
+}
+
+
+/*!
+ * querystring
+ * Copyright(c) 2010 TJ Holowaychuk <tj@vision-media.ca>
+ * MIT Licensed
+ */
+
+/**
+ * Library version.
+ */
+
+exports.version = '0.3.1';
+
+/**
+ * Object#toString() ref for stringify().
+ */
+
+var toString = Object.prototype.toString;
+
+/**
+ * Cache non-integer test regexp.
+ */
+
+var notint = /[^0-9]/;
+
+/**
+ * Parse the given query `str`, returning an object.
+ *
+ * @param {String} str
+ * @return {Object}
+ * @api public
+ */
+
+exports.parse = function(str){
+  if (null == str || '' == str) return {};
+
+  function promote(parent, key) {
+    if (parent[key].length == 0) return parent[key] = {};
+    var t = {};
+    for (var i in parent[key]) t[i] = parent[key][i];
+    parent[key] = t;
+    return t;
+  }
+
+  return String(str)
+    .split('&')
+    .reduce(function(ret, pair){
+      try{ 
+        pair = decodeURIComponent(pair.replace(/\+/g, ' '));
+      } catch(e) {
+        // ignore
+      }
+
+      var eql = pair.indexOf('=')
+        , brace = lastBraceInKey(pair)
+        , key = pair.substr(0, brace || eql)
+        , val = pair.substr(brace || eql, pair.length)
+        , val = val.substr(val.indexOf('=') + 1, val.length)
+        , parent = ret;
+
+      // ?foo
+      if ('' == key) key = pair, val = '';
+
+      // nested
+      if (~key.indexOf(']')) {
+        var parts = key.split('[')
+          , len = parts.length
+          , last = len - 1;
+
+        function parse(parts, parent, key) {
+          var part = parts.shift();
+
+          // end
+          if (!part) {
+            if (isArray(parent[key])) {
+              parent[key].push(val);
+            } else if ('object' == typeof parent[key]) {
+              parent[key] = val;
+            } else if ('undefined' == typeof parent[key]) {
+              parent[key] = val;
+            } else {
+              parent[key] = [parent[key], val];
+            }
+          // array
+          } else {
+            obj = parent[key] = parent[key] || [];
+            if (']' == part) {
+              if (isArray(obj)) {
+                if ('' != val) obj.push(val);
+              } else if ('object' == typeof obj) {
+                obj[objectKeys(obj).length] = val;
+              } else {
+                obj = parent[key] = [parent[key], val];
+              }
+            // prop
+            } else if (~part.indexOf(']')) {
+              part = part.substr(0, part.length - 1);
+              if(notint.test(part) && isArray(obj)) obj = promote(parent, key);
+              parse(parts, obj, part);
+            // key
+            } else {
+              if(notint.test(part) && isArray(obj)) obj = promote(parent, key);
+              parse(parts, obj, part);
+            }
+          }
+        }
+
+        parse(parts, parent, 'base');
+      // optimize
+      } else {
+        if (notint.test(key) && isArray(parent.base)) {
+          var t = {};
+          for(var k in parent.base) t[k] = parent.base[k];
+          parent.base = t;
+        }
+        set(parent.base, key, val);
+      }
+
+      return ret;
+    }, {base: {}}).base;
+};
+
+/**
+ * Turn the given `obj` into a query string
+ *
+ * @param {Object} obj
+ * @return {String}
+ * @api public
+ */
+
+var stringify = exports.stringify = function(obj, prefix) {
+  if (isArray(obj)) {
+    return stringifyArray(obj, prefix);
+  } else if ('[object Object]' == toString.call(obj)) {
+    return stringifyObject(obj, prefix);
+  } else if ('string' == typeof obj) {
+    return stringifyString(obj, prefix);
+  } else {
+    return prefix;
+  }
+};
+
+/**
+ * Stringify the given `str`.
+ *
+ * @param {String} str
+ * @param {String} prefix
+ * @return {String}
+ * @api private
+ */
+
+function stringifyString(str, prefix) {
+  if (!prefix) throw new TypeError('stringify expects an object');
+  return prefix + '=' + encodeURIComponent(str);
+}
+
+/**
+ * Stringify the given `arr`.
+ *
+ * @param {Array} arr
+ * @param {String} prefix
+ * @return {String}
+ * @api private
+ */
+
+function stringifyArray(arr, prefix) {
+  var ret = [];
+  if (!prefix) throw new TypeError('stringify expects an object');
+  for (var i = 0; i < arr.length; i++) {
+    ret.push(stringify(arr[i], prefix + '[]'));
+  }
+  return ret.join('&');
+}
+
+/**
+ * Stringify the given `obj`.
+ *
+ * @param {Object} obj
+ * @param {String} prefix
+ * @return {String}
+ * @api private
+ */
+
+function stringifyObject(obj, prefix) {
+  var ret = []
+    , keys = objectKeys(obj)
+    , key;
+  for (var i = 0, len = keys.length; i < len; ++i) {
+    key = keys[i];
+    ret.push(stringify(obj[key], prefix
+      ? prefix + '[' + encodeURIComponent(key) + ']'
+      : encodeURIComponent(key)));
+  }
+  return ret.join('&');
+}
+
+/**
+ * Set `obj`'s `key` to `val` respecting
+ * the weird and wonderful syntax of a qs,
+ * where "foo=bar&foo=baz" becomes an array.
+ *
+ * @param {Object} obj
+ * @param {String} key
+ * @param {String} val
+ * @api private
+ */
+
+function set(obj, key, val) {
+  var v = obj[key];
+  if (undefined === v) {
+    obj[key] = val;
+  } else if (isArray(v)) {
+    v.push(val);
+  } else {
+    obj[key] = [v, val];
+  }
+}
+
+/**
+ * Locate last brace in `str` within the key.
+ *
+ * @param {String} str
+ * @return {Number}
+ * @api private
+ */
+
+function lastBraceInKey(str) {
+  var len = str.length
+    , brace
+    , c;
+  for (var i = 0; i < len; ++i) {
+    c = str[i];
+    if (']' == c) brace = false;
+    if ('[' == c) brace = true;
+    if ('=' == c && !brace) return i;
+  }
+}
+
+},{}],13:[function(require,module,exports){
 var events = require('events');
 
 exports.isArray = isArray;
@@ -1795,7 +1849,247 @@ exports.format = function(f) {
   return str;
 };
 
-},{"events":11}],10:[function(require,module,exports){
+},{"events":12}],15:[function(require,module,exports){
+// shim for using process in browser
+
+var process = module.exports = {};
+
+process.nextTick = (function () {
+    var canSetImmediate = typeof window !== 'undefined'
+    && window.setImmediate;
+    var canPost = typeof window !== 'undefined'
+    && window.postMessage && window.addEventListener
+    ;
+
+    if (canSetImmediate) {
+        return function (f) { return window.setImmediate(f) };
+    }
+
+    if (canPost) {
+        var queue = [];
+        window.addEventListener('message', function (ev) {
+            if (ev.source === window && ev.data === 'process-tick') {
+                ev.stopPropagation();
+                if (queue.length > 0) {
+                    var fn = queue.shift();
+                    fn();
+                }
+            }
+        }, true);
+
+        return function nextTick(fn) {
+            queue.push(fn);
+            window.postMessage('process-tick', '*');
+        };
+    }
+
+    return function nextTick(fn) {
+        setTimeout(fn, 0);
+    };
+})();
+
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+}
+
+// TODO(shtylman)
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+
+},{}],12:[function(require,module,exports){
+(function(process){if (!process.EventEmitter) process.EventEmitter = function () {};
+
+var EventEmitter = exports.EventEmitter = process.EventEmitter;
+var isArray = typeof Array.isArray === 'function'
+    ? Array.isArray
+    : function (xs) {
+        return Object.prototype.toString.call(xs) === '[object Array]'
+    }
+;
+function indexOf (xs, x) {
+    if (xs.indexOf) return xs.indexOf(x);
+    for (var i = 0; i < xs.length; i++) {
+        if (x === xs[i]) return i;
+    }
+    return -1;
+}
+
+// By default EventEmitters will print a warning if more than
+// 10 listeners are added to it. This is a useful default which
+// helps finding memory leaks.
+//
+// Obviously not all Emitters should be limited to 10. This function allows
+// that to be increased. Set to zero for unlimited.
+var defaultMaxListeners = 10;
+EventEmitter.prototype.setMaxListeners = function(n) {
+  if (!this._events) this._events = {};
+  this._events.maxListeners = n;
+};
+
+
+EventEmitter.prototype.emit = function(type) {
+  // If there is no 'error' event listener then throw.
+  if (type === 'error') {
+    if (!this._events || !this._events.error ||
+        (isArray(this._events.error) && !this._events.error.length))
+    {
+      if (arguments[1] instanceof Error) {
+        throw arguments[1]; // Unhandled 'error' event
+      } else {
+        throw new Error("Uncaught, unspecified 'error' event.");
+      }
+      return false;
+    }
+  }
+
+  if (!this._events) return false;
+  var handler = this._events[type];
+  if (!handler) return false;
+
+  if (typeof handler == 'function') {
+    switch (arguments.length) {
+      // fast cases
+      case 1:
+        handler.call(this);
+        break;
+      case 2:
+        handler.call(this, arguments[1]);
+        break;
+      case 3:
+        handler.call(this, arguments[1], arguments[2]);
+        break;
+      // slower
+      default:
+        var args = Array.prototype.slice.call(arguments, 1);
+        handler.apply(this, args);
+    }
+    return true;
+
+  } else if (isArray(handler)) {
+    var args = Array.prototype.slice.call(arguments, 1);
+
+    var listeners = handler.slice();
+    for (var i = 0, l = listeners.length; i < l; i++) {
+      listeners[i].apply(this, args);
+    }
+    return true;
+
+  } else {
+    return false;
+  }
+};
+
+// EventEmitter is defined in src/node_events.cc
+// EventEmitter.prototype.emit() is also defined there.
+EventEmitter.prototype.addListener = function(type, listener) {
+  if ('function' !== typeof listener) {
+    throw new Error('addListener only takes instances of Function');
+  }
+
+  if (!this._events) this._events = {};
+
+  // To avoid recursion in the case that type == "newListeners"! Before
+  // adding it to the listeners, first emit "newListeners".
+  this.emit('newListener', type, listener);
+
+  if (!this._events[type]) {
+    // Optimize the case of one listener. Don't need the extra array object.
+    this._events[type] = listener;
+  } else if (isArray(this._events[type])) {
+
+    // Check for listener leak
+    if (!this._events[type].warned) {
+      var m;
+      if (this._events.maxListeners !== undefined) {
+        m = this._events.maxListeners;
+      } else {
+        m = defaultMaxListeners;
+      }
+
+      if (m && m > 0 && this._events[type].length > m) {
+        this._events[type].warned = true;
+        console.error('(node) warning: possible EventEmitter memory ' +
+                      'leak detected. %d listeners added. ' +
+                      'Use emitter.setMaxListeners() to increase limit.',
+                      this._events[type].length);
+        console.trace();
+      }
+    }
+
+    // If we've already got an array, just append.
+    this._events[type].push(listener);
+  } else {
+    // Adding the second element, need to change to array.
+    this._events[type] = [this._events[type], listener];
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.on = EventEmitter.prototype.addListener;
+
+EventEmitter.prototype.once = function(type, listener) {
+  var self = this;
+  self.on(type, function g() {
+    self.removeListener(type, g);
+    listener.apply(this, arguments);
+  });
+
+  return this;
+};
+
+EventEmitter.prototype.removeListener = function(type, listener) {
+  if ('function' !== typeof listener) {
+    throw new Error('removeListener only takes instances of Function');
+  }
+
+  // does not use listeners(), so no side effect of creating _events[type]
+  if (!this._events || !this._events[type]) return this;
+
+  var list = this._events[type];
+
+  if (isArray(list)) {
+    var i = indexOf(list, listener);
+    if (i < 0) return this;
+    list.splice(i, 1);
+    if (list.length == 0)
+      delete this._events[type];
+  } else if (this._events[type] === listener) {
+    delete this._events[type];
+  }
+
+  return this;
+};
+
+EventEmitter.prototype.removeAllListeners = function(type) {
+  if (arguments.length === 0) {
+    this._events = {};
+    return this;
+  }
+
+  // does not use listeners(), so no side effect of creating _events[type]
+  if (type && this._events && this._events[type]) this._events[type] = null;
+  return this;
+};
+
+EventEmitter.prototype.listeners = function(type) {
+  if (!this._events) this._events = {};
+  if (!this._events[type]) this._events[type] = [];
+  if (!isArray(this._events[type])) {
+    this._events[type] = [this._events[type]];
+  }
+  return this._events[type];
+};
+
+})(require("__browserify_process"))
+},{"__browserify_process":15}],14:[function(require,module,exports){
 (function(){/* SockJS client, version 0.3.1.7.ga67f.dirty, http://sockjs.org, MIT License
 
 Copyright (c) 2011-2012 VMware, Inc.
@@ -4121,259 +4415,7 @@ if (typeof module === 'object' && module && module.exports) {
 
 
 })()
-},{}],15:[function(require,module,exports){
-var isArray = typeof Array.isArray === 'function'
-    ? Array.isArray
-    : function (xs) {
-        return Object.prototype.toString.call(xs) === '[object Array]'
-    };
-
-var objectKeys = Object.keys || function objectKeys(object) {
-    if (object !== Object(object)) throw new TypeError('Invalid object');
-    var keys = [];
-    for (var key in object) if (object.hasOwnProperty(key)) keys[keys.length] = key;
-    return keys;
-}
-
-
-/*!
- * querystring
- * Copyright(c) 2010 TJ Holowaychuk <tj@vision-media.ca>
- * MIT Licensed
- */
-
-/**
- * Library version.
- */
-
-exports.version = '0.3.1';
-
-/**
- * Object#toString() ref for stringify().
- */
-
-var toString = Object.prototype.toString;
-
-/**
- * Cache non-integer test regexp.
- */
-
-var notint = /[^0-9]/;
-
-/**
- * Parse the given query `str`, returning an object.
- *
- * @param {String} str
- * @return {Object}
- * @api public
- */
-
-exports.parse = function(str){
-  if (null == str || '' == str) return {};
-
-  function promote(parent, key) {
-    if (parent[key].length == 0) return parent[key] = {};
-    var t = {};
-    for (var i in parent[key]) t[i] = parent[key][i];
-    parent[key] = t;
-    return t;
-  }
-
-  return String(str)
-    .split('&')
-    .reduce(function(ret, pair){
-      try{ 
-        pair = decodeURIComponent(pair.replace(/\+/g, ' '));
-      } catch(e) {
-        // ignore
-      }
-
-      var eql = pair.indexOf('=')
-        , brace = lastBraceInKey(pair)
-        , key = pair.substr(0, brace || eql)
-        , val = pair.substr(brace || eql, pair.length)
-        , val = val.substr(val.indexOf('=') + 1, val.length)
-        , parent = ret;
-
-      // ?foo
-      if ('' == key) key = pair, val = '';
-
-      // nested
-      if (~key.indexOf(']')) {
-        var parts = key.split('[')
-          , len = parts.length
-          , last = len - 1;
-
-        function parse(parts, parent, key) {
-          var part = parts.shift();
-
-          // end
-          if (!part) {
-            if (isArray(parent[key])) {
-              parent[key].push(val);
-            } else if ('object' == typeof parent[key]) {
-              parent[key] = val;
-            } else if ('undefined' == typeof parent[key]) {
-              parent[key] = val;
-            } else {
-              parent[key] = [parent[key], val];
-            }
-          // array
-          } else {
-            obj = parent[key] = parent[key] || [];
-            if (']' == part) {
-              if (isArray(obj)) {
-                if ('' != val) obj.push(val);
-              } else if ('object' == typeof obj) {
-                obj[objectKeys(obj).length] = val;
-              } else {
-                obj = parent[key] = [parent[key], val];
-              }
-            // prop
-            } else if (~part.indexOf(']')) {
-              part = part.substr(0, part.length - 1);
-              if(notint.test(part) && isArray(obj)) obj = promote(parent, key);
-              parse(parts, obj, part);
-            // key
-            } else {
-              if(notint.test(part) && isArray(obj)) obj = promote(parent, key);
-              parse(parts, obj, part);
-            }
-          }
-        }
-
-        parse(parts, parent, 'base');
-      // optimize
-      } else {
-        if (notint.test(key) && isArray(parent.base)) {
-          var t = {};
-          for(var k in parent.base) t[k] = parent.base[k];
-          parent.base = t;
-        }
-        set(parent.base, key, val);
-      }
-
-      return ret;
-    }, {base: {}}).base;
-};
-
-/**
- * Turn the given `obj` into a query string
- *
- * @param {Object} obj
- * @return {String}
- * @api public
- */
-
-var stringify = exports.stringify = function(obj, prefix) {
-  if (isArray(obj)) {
-    return stringifyArray(obj, prefix);
-  } else if ('[object Object]' == toString.call(obj)) {
-    return stringifyObject(obj, prefix);
-  } else if ('string' == typeof obj) {
-    return stringifyString(obj, prefix);
-  } else {
-    return prefix;
-  }
-};
-
-/**
- * Stringify the given `str`.
- *
- * @param {String} str
- * @param {String} prefix
- * @return {String}
- * @api private
- */
-
-function stringifyString(str, prefix) {
-  if (!prefix) throw new TypeError('stringify expects an object');
-  return prefix + '=' + encodeURIComponent(str);
-}
-
-/**
- * Stringify the given `arr`.
- *
- * @param {Array} arr
- * @param {String} prefix
- * @return {String}
- * @api private
- */
-
-function stringifyArray(arr, prefix) {
-  var ret = [];
-  if (!prefix) throw new TypeError('stringify expects an object');
-  for (var i = 0; i < arr.length; i++) {
-    ret.push(stringify(arr[i], prefix + '[]'));
-  }
-  return ret.join('&');
-}
-
-/**
- * Stringify the given `obj`.
- *
- * @param {Object} obj
- * @param {String} prefix
- * @return {String}
- * @api private
- */
-
-function stringifyObject(obj, prefix) {
-  var ret = []
-    , keys = objectKeys(obj)
-    , key;
-  for (var i = 0, len = keys.length; i < len; ++i) {
-    key = keys[i];
-    ret.push(stringify(obj[key], prefix
-      ? prefix + '[' + encodeURIComponent(key) + ']'
-      : encodeURIComponent(key)));
-  }
-  return ret.join('&');
-}
-
-/**
- * Set `obj`'s `key` to `val` respecting
- * the weird and wonderful syntax of a qs,
- * where "foo=bar&foo=baz" becomes an array.
- *
- * @param {Object} obj
- * @param {String} key
- * @param {String} val
- * @api private
- */
-
-function set(obj, key, val) {
-  var v = obj[key];
-  if (undefined === v) {
-    obj[key] = val;
-  } else if (isArray(v)) {
-    v.push(val);
-  } else {
-    obj[key] = [v, val];
-  }
-}
-
-/**
- * Locate last brace in `str` within the key.
- *
- * @param {String} str
- * @return {Number}
- * @api private
- */
-
-function lastBraceInKey(str) {
-  var len = str.length
-    , brace
-    , c;
-  for (var i = 0; i < len; ++i) {
-    c = str[i];
-    if (']' == c) brace = false;
-    if ('[' == c) brace = true;
-    if ('=' == c && !brace) return i;
-  }
-}
-
-},{}],13:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 (function(process){var protocol = require('dnode-protocol');
 var Stream = require('stream');
 var json = typeof JSON === 'object' ? JSON : require('jsonify');
@@ -4529,7 +4571,7 @@ dnode.prototype.destroy = function () {
 };
 
 })(require("__browserify_process"))
-},{"stream":8,"dnode-protocol":16,"jsonify":17,"__browserify_process":14}],16:[function(require,module,exports){
+},{"stream":11,"dnode-protocol":16,"jsonify":17,"__browserify_process":15}],16:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var scrubber = require('./lib/scrub');
 var objectKeys = require('./lib/keys');
@@ -4656,174 +4698,26 @@ Proto.prototype.apply = function (f, args) {
     catch (err) { this.emit('error', err) }
 };
 
-},{"events":11,"./lib/scrub":18,"./lib/keys":19,"./lib/foreach":20,"./lib/is_enum":21}],17:[function(require,module,exports){
-exports.parse = require('./lib/parse');
-exports.stringify = require('./lib/stringify');
-
-},{"./lib/parse":22,"./lib/stringify":23}],19:[function(require,module,exports){
+},{"events":12,"./lib/scrub":18,"./lib/keys":19,"./lib/foreach":20,"./lib/is_enum":21}],19:[function(require,module,exports){
 module.exports = Object.keys || function (obj) {
     var keys = [];
     for (var key in obj) keys.push(key);
     return keys;
 };
 
-},{}],23:[function(require,module,exports){
-var cx = /[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
-    escapable = /[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
-    gap,
-    indent,
-    meta = {    // table of character substitutions
-        '\b': '\\b',
-        '\t': '\\t',
-        '\n': '\\n',
-        '\f': '\\f',
-        '\r': '\\r',
-        '"' : '\\"',
-        '\\': '\\\\'
-    },
-    rep;
-
-function quote(string) {
-    // If the string contains no control characters, no quote characters, and no
-    // backslash characters, then we can safely slap some quotes around it.
-    // Otherwise we must also replace the offending characters with safe escape
-    // sequences.
-    
-    escapable.lastIndex = 0;
-    return escapable.test(string) ? '"' + string.replace(escapable, function (a) {
-        var c = meta[a];
-        return typeof c === 'string' ? c :
-            '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
-    }) + '"' : '"' + string + '"';
-}
-
-function str(key, holder) {
-    // Produce a string from holder[key].
-    var i,          // The loop counter.
-        k,          // The member key.
-        v,          // The member value.
-        length,
-        mind = gap,
-        partial,
-        value = holder[key];
-    
-    // If the value has a toJSON method, call it to obtain a replacement value.
-    if (value && typeof value === 'object' &&
-            typeof value.toJSON === 'function') {
-        value = value.toJSON(key);
-    }
-    
-    // If we were called with a replacer function, then call the replacer to
-    // obtain a replacement value.
-    if (typeof rep === 'function') {
-        value = rep.call(holder, key, value);
-    }
-    
-    // What happens next depends on the value's type.
-    switch (typeof value) {
-        case 'string':
-            return quote(value);
-        
-        case 'number':
-            // JSON numbers must be finite. Encode non-finite numbers as null.
-            return isFinite(value) ? String(value) : 'null';
-        
-        case 'boolean':
-        case 'null':
-            // If the value is a boolean or null, convert it to a string. Note:
-            // typeof null does not produce 'null'. The case is included here in
-            // the remote chance that this gets fixed someday.
-            return String(value);
-            
-        case 'object':
-            if (!value) return 'null';
-            gap += indent;
-            partial = [];
-            
-            // Array.isArray
-            if (Object.prototype.toString.apply(value) === '[object Array]') {
-                length = value.length;
-                for (i = 0; i < length; i += 1) {
-                    partial[i] = str(i, value) || 'null';
-                }
-                
-                // Join all of the elements together, separated with commas, and
-                // wrap them in brackets.
-                v = partial.length === 0 ? '[]' : gap ?
-                    '[\n' + gap + partial.join(',\n' + gap) + '\n' + mind + ']' :
-                    '[' + partial.join(',') + ']';
-                gap = mind;
-                return v;
-            }
-            
-            // If the replacer is an array, use it to select the members to be
-            // stringified.
-            if (rep && typeof rep === 'object') {
-                length = rep.length;
-                for (i = 0; i < length; i += 1) {
-                    k = rep[i];
-                    if (typeof k === 'string') {
-                        v = str(k, value);
-                        if (v) {
-                            partial.push(quote(k) + (gap ? ': ' : ':') + v);
-                        }
-                    }
-                }
-            }
-            else {
-                // Otherwise, iterate through all of the keys in the object.
-                for (k in value) {
-                    if (Object.prototype.hasOwnProperty.call(value, k)) {
-                        v = str(k, value);
-                        if (v) {
-                            partial.push(quote(k) + (gap ? ': ' : ':') + v);
-                        }
-                    }
-                }
-            }
-            
-        // Join all of the member texts together, separated with commas,
-        // and wrap them in braces.
-
-        v = partial.length === 0 ? '{}' : gap ?
-            '{\n' + gap + partial.join(',\n' + gap) + '\n' + mind + '}' :
-            '{' + partial.join(',') + '}';
-        gap = mind;
-        return v;
+},{}],20:[function(require,module,exports){
+module.exports = function forEach (xs, f) {
+    if (xs.forEach) return xs.forEach(f)
+    for (var i = 0; i < xs.length; i++) {
+        f.call(xs, xs[i], i);
     }
 }
 
-module.exports = function (value, replacer, space) {
-    var i;
-    gap = '';
-    indent = '';
-    
-    // If the space parameter is a number, make an indent string containing that
-    // many spaces.
-    if (typeof space === 'number') {
-        for (i = 0; i < space; i += 1) {
-            indent += ' ';
-        }
-    }
-    // If the space parameter is a string, it will be used as the indent string.
-    else if (typeof space === 'string') {
-        indent = space;
-    }
+},{}],17:[function(require,module,exports){
+exports.parse = require('./lib/parse');
+exports.stringify = require('./lib/stringify');
 
-    // If there is a replacer, it must be a function or an array.
-    // Otherwise, throw an error.
-    rep = replacer;
-    if (replacer && typeof replacer !== 'function'
-    && (typeof replacer !== 'object' || typeof replacer.length !== 'number')) {
-        throw new Error('JSON.stringify');
-    }
-    
-    // Make a fake root object containing our value under the key of ''.
-    // Return the result of stringifying the value.
-    return str('', {'': value});
-};
-
-},{}],21:[function(require,module,exports){
+},{"./lib/parse":22,"./lib/stringify":23}],21:[function(require,module,exports){
 var objectKeys = require('./keys');
 
 module.exports = function (obj, key) {
@@ -4837,15 +4731,7 @@ module.exports = function (obj, key) {
     return false;
 };
 
-},{"./keys":19}],20:[function(require,module,exports){
-module.exports = function forEach (xs, f) {
-    if (xs.forEach) return xs.forEach(f)
-    for (var i = 0; i < xs.length; i++) {
-        f.call(xs, xs[i], i);
-    }
-}
-
-},{}],18:[function(require,module,exports){
+},{"./keys":19}],18:[function(require,module,exports){
 var traverse = require('traverse');
 var objectKeys = require('./keys');
 var forEach = require('./foreach');
@@ -4919,282 +4805,7 @@ Scrubber.prototype.unscrub = function (msg, f) {
     return args;
 };
 
-},{"./keys":19,"./foreach":20,"traverse":24}],22:[function(require,module,exports){
-var at, // The index of the current character
-    ch, // The current character
-    escapee = {
-        '"':  '"',
-        '\\': '\\',
-        '/':  '/',
-        b:    '\b',
-        f:    '\f',
-        n:    '\n',
-        r:    '\r',
-        t:    '\t'
-    },
-    text,
-
-    error = function (m) {
-        // Call error when something is wrong.
-        throw {
-            name:    'SyntaxError',
-            message: m,
-            at:      at,
-            text:    text
-        };
-    },
-    
-    next = function (c) {
-        // If a c parameter is provided, verify that it matches the current character.
-        if (c && c !== ch) {
-            error("Expected '" + c + "' instead of '" + ch + "'");
-        }
-        
-        // Get the next character. When there are no more characters,
-        // return the empty string.
-        
-        ch = text.charAt(at);
-        at += 1;
-        return ch;
-    },
-    
-    number = function () {
-        // Parse a number value.
-        var number,
-            string = '';
-        
-        if (ch === '-') {
-            string = '-';
-            next('-');
-        }
-        while (ch >= '0' && ch <= '9') {
-            string += ch;
-            next();
-        }
-        if (ch === '.') {
-            string += '.';
-            while (next() && ch >= '0' && ch <= '9') {
-                string += ch;
-            }
-        }
-        if (ch === 'e' || ch === 'E') {
-            string += ch;
-            next();
-            if (ch === '-' || ch === '+') {
-                string += ch;
-                next();
-            }
-            while (ch >= '0' && ch <= '9') {
-                string += ch;
-                next();
-            }
-        }
-        number = +string;
-        if (!isFinite(number)) {
-            error("Bad number");
-        } else {
-            return number;
-        }
-    },
-    
-    string = function () {
-        // Parse a string value.
-        var hex,
-            i,
-            string = '',
-            uffff;
-        
-        // When parsing for string values, we must look for " and \ characters.
-        if (ch === '"') {
-            while (next()) {
-                if (ch === '"') {
-                    next();
-                    return string;
-                } else if (ch === '\\') {
-                    next();
-                    if (ch === 'u') {
-                        uffff = 0;
-                        for (i = 0; i < 4; i += 1) {
-                            hex = parseInt(next(), 16);
-                            if (!isFinite(hex)) {
-                                break;
-                            }
-                            uffff = uffff * 16 + hex;
-                        }
-                        string += String.fromCharCode(uffff);
-                    } else if (typeof escapee[ch] === 'string') {
-                        string += escapee[ch];
-                    } else {
-                        break;
-                    }
-                } else {
-                    string += ch;
-                }
-            }
-        }
-        error("Bad string");
-    },
-
-    white = function () {
-
-// Skip whitespace.
-
-        while (ch && ch <= ' ') {
-            next();
-        }
-    },
-
-    word = function () {
-
-// true, false, or null.
-
-        switch (ch) {
-        case 't':
-            next('t');
-            next('r');
-            next('u');
-            next('e');
-            return true;
-        case 'f':
-            next('f');
-            next('a');
-            next('l');
-            next('s');
-            next('e');
-            return false;
-        case 'n':
-            next('n');
-            next('u');
-            next('l');
-            next('l');
-            return null;
-        }
-        error("Unexpected '" + ch + "'");
-    },
-
-    value,  // Place holder for the value function.
-
-    array = function () {
-
-// Parse an array value.
-
-        var array = [];
-
-        if (ch === '[') {
-            next('[');
-            white();
-            if (ch === ']') {
-                next(']');
-                return array;   // empty array
-            }
-            while (ch) {
-                array.push(value());
-                white();
-                if (ch === ']') {
-                    next(']');
-                    return array;
-                }
-                next(',');
-                white();
-            }
-        }
-        error("Bad array");
-    },
-
-    object = function () {
-
-// Parse an object value.
-
-        var key,
-            object = {};
-
-        if (ch === '{') {
-            next('{');
-            white();
-            if (ch === '}') {
-                next('}');
-                return object;   // empty object
-            }
-            while (ch) {
-                key = string();
-                white();
-                next(':');
-                if (Object.hasOwnProperty.call(object, key)) {
-                    error('Duplicate key "' + key + '"');
-                }
-                object[key] = value();
-                white();
-                if (ch === '}') {
-                    next('}');
-                    return object;
-                }
-                next(',');
-                white();
-            }
-        }
-        error("Bad object");
-    };
-
-value = function () {
-
-// Parse a JSON value. It could be an object, an array, a string, a number,
-// or a word.
-
-    white();
-    switch (ch) {
-    case '{':
-        return object();
-    case '[':
-        return array();
-    case '"':
-        return string();
-    case '-':
-        return number();
-    default:
-        return ch >= '0' && ch <= '9' ? number() : word();
-    }
-};
-
-// Return the json_parse function. It will have access to all of the above
-// functions and variables.
-
-module.exports = function (source, reviver) {
-    var result;
-    
-    text = source;
-    at = 0;
-    ch = ' ';
-    result = value();
-    white();
-    if (ch) {
-        error("Syntax error");
-    }
-
-    // If there is a reviver function, we recursively walk the new structure,
-    // passing each name/value pair to the reviver function for possible
-    // transformation, starting with a temporary root object that holds the result
-    // in an empty key. If there is not a reviver function, we simply return the
-    // result.
-
-    return typeof reviver === 'function' ? (function walk(holder, key) {
-        var k, v, value = holder[key];
-        if (value && typeof value === 'object') {
-            for (k in value) {
-                if (Object.prototype.hasOwnProperty.call(value, k)) {
-                    v = walk(value, k);
-                    if (v !== undefined) {
-                        value[k] = v;
-                    } else {
-                        delete value[k];
-                    }
-                }
-            }
-        }
-        return reviver.call(holder, key, value);
-    }({'': result}, '')) : result;
-};
-
-},{}],24:[function(require,module,exports){
+},{"./keys":19,"./foreach":20,"traverse":24}],24:[function(require,module,exports){
 var traverse = module.exports = function (obj) {
     return new Traverse(obj);
 };
@@ -5510,5 +5121,436 @@ var hasOwnProperty = Object.hasOwnProperty || function (obj, key) {
     return key in obj;
 };
 
-},{}]},{},[2])
+},{}],22:[function(require,module,exports){
+var at, // The index of the current character
+    ch, // The current character
+    escapee = {
+        '"':  '"',
+        '\\': '\\',
+        '/':  '/',
+        b:    '\b',
+        f:    '\f',
+        n:    '\n',
+        r:    '\r',
+        t:    '\t'
+    },
+    text,
+
+    error = function (m) {
+        // Call error when something is wrong.
+        throw {
+            name:    'SyntaxError',
+            message: m,
+            at:      at,
+            text:    text
+        };
+    },
+    
+    next = function (c) {
+        // If a c parameter is provided, verify that it matches the current character.
+        if (c && c !== ch) {
+            error("Expected '" + c + "' instead of '" + ch + "'");
+        }
+        
+        // Get the next character. When there are no more characters,
+        // return the empty string.
+        
+        ch = text.charAt(at);
+        at += 1;
+        return ch;
+    },
+    
+    number = function () {
+        // Parse a number value.
+        var number,
+            string = '';
+        
+        if (ch === '-') {
+            string = '-';
+            next('-');
+        }
+        while (ch >= '0' && ch <= '9') {
+            string += ch;
+            next();
+        }
+        if (ch === '.') {
+            string += '.';
+            while (next() && ch >= '0' && ch <= '9') {
+                string += ch;
+            }
+        }
+        if (ch === 'e' || ch === 'E') {
+            string += ch;
+            next();
+            if (ch === '-' || ch === '+') {
+                string += ch;
+                next();
+            }
+            while (ch >= '0' && ch <= '9') {
+                string += ch;
+                next();
+            }
+        }
+        number = +string;
+        if (!isFinite(number)) {
+            error("Bad number");
+        } else {
+            return number;
+        }
+    },
+    
+    string = function () {
+        // Parse a string value.
+        var hex,
+            i,
+            string = '',
+            uffff;
+        
+        // When parsing for string values, we must look for " and \ characters.
+        if (ch === '"') {
+            while (next()) {
+                if (ch === '"') {
+                    next();
+                    return string;
+                } else if (ch === '\\') {
+                    next();
+                    if (ch === 'u') {
+                        uffff = 0;
+                        for (i = 0; i < 4; i += 1) {
+                            hex = parseInt(next(), 16);
+                            if (!isFinite(hex)) {
+                                break;
+                            }
+                            uffff = uffff * 16 + hex;
+                        }
+                        string += String.fromCharCode(uffff);
+                    } else if (typeof escapee[ch] === 'string') {
+                        string += escapee[ch];
+                    } else {
+                        break;
+                    }
+                } else {
+                    string += ch;
+                }
+            }
+        }
+        error("Bad string");
+    },
+
+    white = function () {
+
+// Skip whitespace.
+
+        while (ch && ch <= ' ') {
+            next();
+        }
+    },
+
+    word = function () {
+
+// true, false, or null.
+
+        switch (ch) {
+        case 't':
+            next('t');
+            next('r');
+            next('u');
+            next('e');
+            return true;
+        case 'f':
+            next('f');
+            next('a');
+            next('l');
+            next('s');
+            next('e');
+            return false;
+        case 'n':
+            next('n');
+            next('u');
+            next('l');
+            next('l');
+            return null;
+        }
+        error("Unexpected '" + ch + "'");
+    },
+
+    value,  // Place holder for the value function.
+
+    array = function () {
+
+// Parse an array value.
+
+        var array = [];
+
+        if (ch === '[') {
+            next('[');
+            white();
+            if (ch === ']') {
+                next(']');
+                return array;   // empty array
+            }
+            while (ch) {
+                array.push(value());
+                white();
+                if (ch === ']') {
+                    next(']');
+                    return array;
+                }
+                next(',');
+                white();
+            }
+        }
+        error("Bad array");
+    },
+
+    object = function () {
+
+// Parse an object value.
+
+        var key,
+            object = {};
+
+        if (ch === '{') {
+            next('{');
+            white();
+            if (ch === '}') {
+                next('}');
+                return object;   // empty object
+            }
+            while (ch) {
+                key = string();
+                white();
+                next(':');
+                if (Object.hasOwnProperty.call(object, key)) {
+                    error('Duplicate key "' + key + '"');
+                }
+                object[key] = value();
+                white();
+                if (ch === '}') {
+                    next('}');
+                    return object;
+                }
+                next(',');
+                white();
+            }
+        }
+        error("Bad object");
+    };
+
+value = function () {
+
+// Parse a JSON value. It could be an object, an array, a string, a number,
+// or a word.
+
+    white();
+    switch (ch) {
+    case '{':
+        return object();
+    case '[':
+        return array();
+    case '"':
+        return string();
+    case '-':
+        return number();
+    default:
+        return ch >= '0' && ch <= '9' ? number() : word();
+    }
+};
+
+// Return the json_parse function. It will have access to all of the above
+// functions and variables.
+
+module.exports = function (source, reviver) {
+    var result;
+    
+    text = source;
+    at = 0;
+    ch = ' ';
+    result = value();
+    white();
+    if (ch) {
+        error("Syntax error");
+    }
+
+    // If there is a reviver function, we recursively walk the new structure,
+    // passing each name/value pair to the reviver function for possible
+    // transformation, starting with a temporary root object that holds the result
+    // in an empty key. If there is not a reviver function, we simply return the
+    // result.
+
+    return typeof reviver === 'function' ? (function walk(holder, key) {
+        var k, v, value = holder[key];
+        if (value && typeof value === 'object') {
+            for (k in value) {
+                if (Object.prototype.hasOwnProperty.call(value, k)) {
+                    v = walk(value, k);
+                    if (v !== undefined) {
+                        value[k] = v;
+                    } else {
+                        delete value[k];
+                    }
+                }
+            }
+        }
+        return reviver.call(holder, key, value);
+    }({'': result}, '')) : result;
+};
+
+},{}],23:[function(require,module,exports){
+var cx = /[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
+    escapable = /[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
+    gap,
+    indent,
+    meta = {    // table of character substitutions
+        '\b': '\\b',
+        '\t': '\\t',
+        '\n': '\\n',
+        '\f': '\\f',
+        '\r': '\\r',
+        '"' : '\\"',
+        '\\': '\\\\'
+    },
+    rep;
+
+function quote(string) {
+    // If the string contains no control characters, no quote characters, and no
+    // backslash characters, then we can safely slap some quotes around it.
+    // Otherwise we must also replace the offending characters with safe escape
+    // sequences.
+    
+    escapable.lastIndex = 0;
+    return escapable.test(string) ? '"' + string.replace(escapable, function (a) {
+        var c = meta[a];
+        return typeof c === 'string' ? c :
+            '\\u' + ('0000' + a.charCodeAt(0).toString(16)).slice(-4);
+    }) + '"' : '"' + string + '"';
+}
+
+function str(key, holder) {
+    // Produce a string from holder[key].
+    var i,          // The loop counter.
+        k,          // The member key.
+        v,          // The member value.
+        length,
+        mind = gap,
+        partial,
+        value = holder[key];
+    
+    // If the value has a toJSON method, call it to obtain a replacement value.
+    if (value && typeof value === 'object' &&
+            typeof value.toJSON === 'function') {
+        value = value.toJSON(key);
+    }
+    
+    // If we were called with a replacer function, then call the replacer to
+    // obtain a replacement value.
+    if (typeof rep === 'function') {
+        value = rep.call(holder, key, value);
+    }
+    
+    // What happens next depends on the value's type.
+    switch (typeof value) {
+        case 'string':
+            return quote(value);
+        
+        case 'number':
+            // JSON numbers must be finite. Encode non-finite numbers as null.
+            return isFinite(value) ? String(value) : 'null';
+        
+        case 'boolean':
+        case 'null':
+            // If the value is a boolean or null, convert it to a string. Note:
+            // typeof null does not produce 'null'. The case is included here in
+            // the remote chance that this gets fixed someday.
+            return String(value);
+            
+        case 'object':
+            if (!value) return 'null';
+            gap += indent;
+            partial = [];
+            
+            // Array.isArray
+            if (Object.prototype.toString.apply(value) === '[object Array]') {
+                length = value.length;
+                for (i = 0; i < length; i += 1) {
+                    partial[i] = str(i, value) || 'null';
+                }
+                
+                // Join all of the elements together, separated with commas, and
+                // wrap them in brackets.
+                v = partial.length === 0 ? '[]' : gap ?
+                    '[\n' + gap + partial.join(',\n' + gap) + '\n' + mind + ']' :
+                    '[' + partial.join(',') + ']';
+                gap = mind;
+                return v;
+            }
+            
+            // If the replacer is an array, use it to select the members to be
+            // stringified.
+            if (rep && typeof rep === 'object') {
+                length = rep.length;
+                for (i = 0; i < length; i += 1) {
+                    k = rep[i];
+                    if (typeof k === 'string') {
+                        v = str(k, value);
+                        if (v) {
+                            partial.push(quote(k) + (gap ? ': ' : ':') + v);
+                        }
+                    }
+                }
+            }
+            else {
+                // Otherwise, iterate through all of the keys in the object.
+                for (k in value) {
+                    if (Object.prototype.hasOwnProperty.call(value, k)) {
+                        v = str(k, value);
+                        if (v) {
+                            partial.push(quote(k) + (gap ? ': ' : ':') + v);
+                        }
+                    }
+                }
+            }
+            
+        // Join all of the member texts together, separated with commas,
+        // and wrap them in braces.
+
+        v = partial.length === 0 ? '{}' : gap ?
+            '{\n' + gap + partial.join(',\n' + gap) + '\n' + mind + '}' :
+            '{' + partial.join(',') + '}';
+        gap = mind;
+        return v;
+    }
+}
+
+module.exports = function (value, replacer, space) {
+    var i;
+    gap = '';
+    indent = '';
+    
+    // If the space parameter is a number, make an indent string containing that
+    // many spaces.
+    if (typeof space === 'number') {
+        for (i = 0; i < space; i += 1) {
+            indent += ' ';
+        }
+    }
+    // If the space parameter is a string, it will be used as the indent string.
+    else if (typeof space === 'string') {
+        indent = space;
+    }
+
+    // If there is a replacer, it must be a function or an array.
+    // Otherwise, throw an error.
+    rep = replacer;
+    if (replacer && typeof replacer !== 'function'
+    && (typeof replacer !== 'object' || typeof replacer.length !== 'number')) {
+        throw new Error('JSON.stringify');
+    }
+    
+    // Make a fake root object containing our value under the key of ''.
+    // Return the result of stringifying the value.
+    return str('', {'': value});
+};
+
+},{}]},{},[5])
 ;

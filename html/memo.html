@@ -2,60 +2,30 @@
 <html>
 <head>
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
-    <title>X-X-O</title>
+    <title>Memory Game - made by eightyfour games ;-)</title>
 
     <script type="text/javascript" src="/js/aggregated.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/memory.css">
 
 </head>
 <body>
 
+<!--
+   Gamevariants:
+
+    * Start with four cards (currently I have 22 animals)
+    ** you are allowed to touch each card once (except you find the match)
+    *** count all double selected cards
+    *** after a maximum of doubled cards the game ends
+    ** after each round add one symbol more
+
+-->
+
 <script>
-    var selectors = {
-        templates : "templates",
-        game : {
-            rootId : 'board'
-        }
-    }
-    var cards = [
-        'red','blue','green','black','yellow','purple'
-    ]
+
 </script>
 
-<style type="text/css">
-    #memo .open.red{background-color:#ff0000;}
-    #memo .open.blue{background-color: #0000ff;}
-    #memo .open.green{background-color: green;}
-    #memo .open.black{background-color: #000000;}
-    #memo .open.yellow{background-color: #ffff00;}
-    #memo .open.purple{background-color: #8a2be2;}
-
-    #memo .card {
-        width: 50px;
-        height: 50px;
-        padding: 10px;
-        border: 4px solid #ffffff;
-        cursor: hand;
-        float: left;
-        background-color: #ffbd7e;
-    }
-    #memo .card:hover{
-        border: 4px solid #adff2f;
-    }
-    #memo .card.empty{
-        border: 4px solid #ffffff;
-        background-color: #fff;
-    }
-    #memo #board {
-        width: 312px;
-        height: 160px;
-    }
-
-    #memo #userList{}
-    #board_pool{}
-
-</style>
-
-<div id="memo">
+<div id="memory">
 
     <!-- board for the cards to play -->
     <div id="board"></div>

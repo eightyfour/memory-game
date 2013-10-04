@@ -45,12 +45,50 @@ domready(function() {
                         empty : 'empty'
                     }
                 }
+            },
+            getImage = function (type) {
+                var img = new Image();
+                img.src = 'images/animals/' + type + '.png';
+                img.alt = type;
+                img.width = 100;
+                img.height = 100;
+                return img;
+            },
+            fadeoutImage = function (img) {
+                var delay = 20,
+                    pixelSteps = 2,
+                    scaleImage = function(){
+                        var w = img.width,
+                            h = img.height,wDone = false,hDone = false;
+                        if (w > 0) {
+                            img.width = w-pixelSteps;
+                            img.style.paddingTop = (parseInt(img.style.paddingTop ? img.style.paddingTop : 0, 10) + pixelSteps/2)+'px';
+                        } else {
+                            wDone = true;
+                        }
+                        if (h > 0) {
+                            img.height = h-pixelSteps;
+                            img.style.paddingLeft = (parseInt(img.style.paddingLeft ? img.style.paddingLeft : 0,10) + pixelSteps/2)+'px';
+
+                        } else {
+                            hDone = true;
+                        }
+                        if (!wDone && !hDone) {
+                            setTimeout(scaleImage,delay);
+                        } else {
+                            img.parentNode.removeChild(img);
+                        }
+                    }
+                scaleImage();
             };
+
         this.currentGameId;
         //ui for the page interactions - not for the game (board)
         this.ui = {
             createNewGame : function(){
-                that.askServer.startNewGame(user.id,C.GAME_TYPES.SINGLE,function(gameId){
+                that.askServer.startNewGame(user.id,
+                    { gametype : C.GAME_TYPES.SINGLE, numberOfSymbols : 8 },
+                    function(gameId){
                     that.currentGameId = gameId;
                 });
             },
@@ -105,6 +143,7 @@ domready(function() {
                     showCard : function(gameConf,card){
                         var cardNode = document.getElementById(class_postfix+card.position);
                         cardNode.domRemoveClass(selectors.game.state.hidden).domAddClass(card.type+' '+selectors.game.state.open);
+                        cardNode.appendChild(getImage(card.type));
                     },
                     hideCard : function(gameConf,card){
                         var cardNode = document.getElementById(class_postfix+card.position);
@@ -113,6 +152,7 @@ domready(function() {
                             if(callMeHasBeenCalled === false){
                                 timer.hasOwnProperty('clearTimeout') && timer.clearTimeout();
                                 cardNode.domRemoveClass(card.type+ ' '+selectors.game.state.open).domAddClass(selectors.game.state.hidden);
+                                cardNode.innerHTML = '';
                                 callMeHasBeenCalled = true;
                             }
                         }
@@ -124,6 +164,7 @@ domready(function() {
                     removeCard : function(gameConf,card){
                         var cardNode = document.getElementById(class_postfix+card.position);
                         cardNode.domRemoveClass().domAddClass(selectors.game.state.empty+' card');
+                        fadeoutImage(cardNode.children[0])
                     },
                     clearBoard : function(){
                         var root = document.getElementById(selectors.game.rootId),
@@ -161,7 +202,7 @@ domready(function() {
         console.log('Connected!',server);
         game.memo.askServer.registerUser( game.memo.serverCallees,user, function(id){
             user.id = id;
-            game.memo.askServer.startNewGame(user.id,C.GAME_TYPES.SINGLE,function(gameId){
+            game.memo.askServer.startNewGame(user.id,{ gametype : C.GAME_TYPES.SINGLE, numberOfSymbols : 8 },function(gameId){
                 game.memo.currentGameId = gameId;
             });
         });

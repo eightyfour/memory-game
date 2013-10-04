@@ -1,0 +1,54 @@
+#memory .open.red{background-color:#ff0000;}
+#memory .open.blue{background-color: #0000ff;}
+#memory .open.green{background-color: green;}
+#memory .open.black{background-color: #000000;}
+#memory .open.yellow{background-color: #ffff00;}
+#memory .open.purple{background-color: #8a2be2;}
+#memory .card {
+    width: 100px;
+    height: 100px;
+    padding: 10px;
+    border: 4px solid #ffffff;
+    cursor: hand;
+    float: left;
+    background-color: #ffbd7e;
+}
+#memory .card:hover{
+    border: 4px solid #adff2f;
+}
+#memory .card.empty{
+    border: 4px solid #ffffff;
+    background-color: #fff;
+}
+#memory #board {
+    width: 812px;
+}
+#memory .card.open{
+    background-color: white;
+}
+#memory .card.open.open{background-color: white;}
+/*#memory .card.open.bull{background-image: url(../images/animals/bull.png);}*/
+/*#memory .card.open.deer{background-image: url(../images/animals/deer.png);}*/
+/*#memory .card.open.donkey{background-image: url(../images/animals/donkey.png);}*/
+/*#memory .card.open.elephant_1{background-image: url(../images/animals/elephant_1.png);}*/
+/*#memory .card.open.elephant_2{background-image: url(../images/animals/elephant_2.png);}*/
+/*#memory .card.open.fish_1{background-image: url(../images/animals/fish_1.png);}*/
+/*#memory .card.open.fish_2{background-image: url(../images/animals/fish_2.png);}*/
+/*#memory .card.open.fish_3{background-image: url(../images/animals/fish_3.png);}*/
+/*#memory .card.open.fish_4{background-image: url(../images/animals/fish_4.png);}*/
+/*#memory .card.open.gnu{background-image: url(../images/animals/gnu.png);}*/
+/*#memory .card.open.goat{background-image: url(../images/animals/goat.png);}*/
+/*#memory .card.open.hippo{background-image: url(../images/animals/hippo.png);}*/
+/*#memory .card.open.kangaroo{background-image: url(../images/animals/kangaroo.png);}*/
+/*#memory .card.open.monkey{background-image: url(../images/animals/monkey.png);}*/
+/*#memory .card.open.ostrich{background-image: url(../images/animals/ostrich.png);}*/
+/*#memory .card.open.pig{background-image: url(../images/animals/pig.png);}*/
+/*#memory .card.open.pinguin{background-image: url(../images/animals/pinguin.png);}*/
+/*#memory .card.open.ray{background-image: url(../images/animals/ray.png);}*/
+/*#memory .card.open.rhino_1{background-image: url(../images/animals/rhino_1.png);}*/
+/*#memory .card.open.rhino_2{background-image: url(../images/animals/rhino_2.png);}*/
+/*#memory .card.open.shark_1{background-image: url(../images/animals/shark_1.png);}*/
+/*#memory .card.open.shark_2{background-image: url(../images/animals/shark_2.png);}*/
+
+#memory #userList{}
+#board_pool{}
