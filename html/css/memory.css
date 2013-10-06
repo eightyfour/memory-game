@@ -4,6 +4,8 @@
 #memory .open.black{background-color: #000000;}
 #memory .open.yellow{background-color: #ffff00;}
 #memory .open.purple{background-color: #8a2be2;}
+#memory .open.cyan{background-color: #00ffff;}
+#memory .open.slategray{background-color: #708090;}
 #memory .card {
     width: 100px;
     height: 100px;
@@ -52,3 +54,10 @@
 
 #memory #userList{}
 #board_pool{}
+
+#configurationPanel{
+
+}
+#gameStatsPanel{
+
+}

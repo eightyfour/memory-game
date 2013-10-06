@@ -1,5 +1,5 @@
 /**
- * Starts the xxo as a single application
+ * Starts the memory as a single application
  * @type {*}
  */
 var memo = require('./lib/server.js');

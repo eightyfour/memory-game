@@ -86,8 +86,9 @@ domready(function() {
         //ui for the page interactions - not for the game (board)
         this.ui = {
             createNewGame : function(){
+                var numberOfSymbols = document.getElementById('numberOfSymbols').value;
                 that.askServer.startNewGame(user.id,
-                    { gametype : C.GAME_TYPES.SINGLE, numberOfSymbols : 8 },
+                    { gametype : C.GAME_TYPES.SINGLE, numberOfSymbols : numberOfSymbols },
                     function(gameId){
                     that.currentGameId = gameId;
                 });
@@ -119,17 +120,7 @@ domready(function() {
                 serverMethods = {
                     showToast : toast.showMessage,
                     gameEnds : function(gameConf,gameState,gameStats){
-                        switch(gameState){
-                            case C.GAMESTATE.won:
-                            case C.GAMESTATE.lost:
-                            case C.GAMESTATE.draw:
-                            default:
-                                console.log('GAME STATE IS: '+gameState);
-                        }
-                        toast.showMessage('-- Matches: '+gameStats.matches+' --');
-                        toast.showMessage('-- Failed: '+gameStats.failed+' --');
-                        toast.showMessage('-- Tries: '+gameStats.tries+' --');
-                        toast.showMessage('- Statistics: -');
+                        console.log('GAME STATE IS: '+gameState);
                     },
                     showMatchedCard : function(gameConf,firstCard,secondCard){
                         serverMethods.showCard(gameConf,secondCard);
@@ -202,7 +193,7 @@ domready(function() {
         console.log('Connected!',server);
         game.memo.askServer.registerUser( game.memo.serverCallees,user, function(id){
             user.id = id;
-            game.memo.askServer.startNewGame(user.id,{ gametype : C.GAME_TYPES.SINGLE, numberOfSymbols : 8 },function(gameId){
+            game.memo.askServer.startNewGame(user.id,{ gametype : C.GAME_TYPES.SINGLE, gameVariant : C.GAME_VARIANTS.moreAndMore, numberOfSymbols : 30 },function(gameId){
                 game.memo.currentGameId = gameId;
             });
         });

@@ -43,8 +43,25 @@
 
     </div>
 
+    <div id="configurationPanel">
+
+        <label for="numberOfSymbols">Select number of symbols:</label>
+        <select id="numberOfSymbols" name="number of symbols" title="Number of symbols">
+            <option value="2">2</option>
+            <option value="4">4</option>
+            <option value="6">6</option>
+            <option value="8">8</option>
+        </select>
+
+        <button href="javascript:void(0);" onclick="window.game.memo.ui.createNewGame()">Create new Game</button>
+
+    </div>
+
+    <div id="gameStatsPanel">
+        <!-- display the state of the game -->
+    </div>
+
 </div>
-<a href="javascript:void(0);" onclick="window.game.memo.ui.createNewGame()">Create new Game</a>
 
 </body>
 </html>
