@@ -82,15 +82,18 @@ domready(function() {
                 scaleImage();
             };
 
-        this.currentGameId;
+        this.currentGameId = '';
         //ui for the page interactions - not for the game (board)
         this.ui = {
             createNewGame : function(){
-                var numberOfSymbols = document.getElementById('numberOfSymbols').value;
-                that.askServer.startNewGame(user.id,
-                    { gametype : C.GAME_TYPES.SINGLE, numberOfSymbols : numberOfSymbols },
-                    function(gameId){
-                    that.currentGameId = gameId;
+                var numberOfSymbols = document.getElementById('numberOfSymbols').value,
+                    gameVariant = document.getElementById('gameVariant').value;
+                that.askServer.startNewGame(user.id, {
+                        gametype : C.GAME_TYPES.SINGLE,
+                        numberOfSymbols : numberOfSymbols,
+                        gameVariant : gameVariant
+                    }, function(gameId){
+                        that.currentGameId = gameId;
                 });
             },
             doSomeOtherPageinteractions : function(){}
@@ -191,7 +194,7 @@ domready(function() {
     d.on('remote', function (server) {
         game.memo.askServer = server;
         console.log('Connected!',server);
-        game.memo.askServer.registerUser( game.memo.serverCallees,user, function(id){
+        game.memo.askServer.registerUser(game.memo.serverCallees,user, function(id){
             user.id = id;
             game.memo.askServer.startNewGame(user.id,{ gametype : C.GAME_TYPES.SINGLE, gameVariant : C.GAME_VARIANTS.moreAndMore, numberOfSymbols : 30 },function(gameId){
                 game.memo.currentGameId = gameId;
