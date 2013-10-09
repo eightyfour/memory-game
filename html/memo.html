@@ -27,13 +27,10 @@
 
 <div id="memory">
 
+    <div id="boardMessage"></div>
+
     <!-- board for the cards to play -->
     <div id="board"></div>
-
-    <script id="templates" type="text/template">
-        <div class="muhuhu">hallo</div>
-    </script>
-
 
     <div id="userList">
 
@@ -47,24 +44,25 @@
 
         <label for="numberOfSymbols">Select number of symbols:</label>
         <select id="numberOfSymbols" name="number of symbols" title="Number of symbols">
-            <option value="2">2</option>
             <option value="4">4</option>
-            <option value="6">6</option>
             <option value="8">8</option>
+            <option value="12">12</option>
+            <option value="20">20</option>
         </select>
 
 
         <label for="gameVariant">Gamevariant</label>
         <select id="gameVariant" name="gameVariant" title="Select a game variant">
             <option value="0">Normal</option>
-            <option value="1">More and more</option>
+            <option value="1" selected="true">More and more</option>
         </select>
 
         <button href="javascript:void(0);" onclick="window.game.memo.ui.createNewGame()">Create new Game</button>
 
     </div>
 
-    <div id="gameStatsPanel">
+    <div id="gameStatsPanel" class="moreAndMore">
+        <div class="doubleSelected">Double selected:<div class="data">0</div></div>
         <!-- display the state of the game -->
     </div>
 

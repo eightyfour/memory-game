@@ -44,6 +44,13 @@ domready(function() {
                         hidden : 'hidden',
                         empty : 'empty'
                     }
+                },
+                env : {
+                    boardMessage : 'boardMessage',
+                    gameStatsPanel : {
+                        root : 'gameStatsPanel',
+                        doubleSelected : 'doubleSelected'
+                    }
                 }
             },
             getImage = function (type) {
@@ -57,9 +64,11 @@ domready(function() {
             fadeoutImage = function (img) {
                 var delay = 20,
                     pixelSteps = 2,
-                    scaleImage = function(){
+                    scaleImage = function () {
                         var w = img.width,
-                            h = img.height,wDone = false,hDone = false;
+                            h = img.height,
+                            wDone = false,
+                            hDone = false;
                         if (w > 0) {
                             img.width = w-pixelSteps;
                             img.style.paddingTop = (parseInt(img.style.paddingTop ? img.style.paddingTop : 0, 10) + pixelSteps/2)+'px';
@@ -80,6 +89,32 @@ domready(function() {
                         }
                     }
                 scaleImage();
+            },
+            gui = {
+                gameLoadingMessage : {
+                    show : function(msg){
+    //                    .. show message that game loads new
+                        var node = document.getElementById(selectors.env.boardMessage);
+                        node.innerText = msg;
+                        node.style.visibility = 'visible';
+                    },
+                    hide : function () {
+                        var node = document.getElementById(selectors.env.boardMessage);
+                        node.style.opacity = '1';
+                        (function fadeOut (oldOp) {
+                            var op = oldOp - 0.1;
+                            if (op > 0) {
+                                node.style.opacity = op;
+                                setTimeout(function () {fadeOut(op); },100);
+                            } else {
+                                node.innerText = "";
+                                node.style.visibility = 'hidden';
+                                node.style.opacity = '1';
+                            }
+                        }(1));
+
+                    }
+                }
             };
 
         this.currentGameId = '';
@@ -97,7 +132,7 @@ domready(function() {
                 });
             },
             doSomeOtherPageinteractions : function(){}
-        }
+        };
 
         this.con = {
             connection : undefined,
@@ -105,23 +140,41 @@ domready(function() {
             client : undefined,
             ui : undefined,
             error : undefined
-        }
+        };
         // bound server methods here - talk to server
         this.askServer;
         // server callees called from server side
         this.serverCallees = (function(){
 
             var class_postfix = "nr_",
+                config = {
+                    createNewBoardDelay : 2000
+                },
                 addClickEvent = function(card){
                     card.addEventListener('click',function Select(e){
                         var id = this.getAttribute('id');
                         var position = id.split(class_postfix)[1];
                         game.memo.askServer.takeCard(user.id,position);
                         console.log('Ask server for take a card');
-                    },false)
+                    },false);
                 },
                 serverMethods = {
-                    showToast : toast.showMessage,
+                    showToast : function() {
+//                        console.log.apply(console,[].slice.call(arguments));
+                        toast.showMessage.apply(null,[].slice.call(arguments));
+                    },
+                    printDebug : function() {
+                        console.log.apply(console,[].slice.call(arguments));
+//                        toast.showMessage.apply(null,[].slice.call(arguments));
+                    },
+                    updateGameStats : function(gameStats) {
+                        var node, data;
+                        if(gameStats.hasOwnProperty('doubleSelected')) {
+                            node = document.getElementById(selectors.env.gameStatsPanel.root);
+                            data = node.getElementsByClassName(selectors.env.gameStatsPanel.doubleSelected)[0];
+                            data.getElementsByClassName('data')[0].innerText =  gameStats.doubleSelected;
+                        }
+                    },
                     gameEnds : function(gameConf,gameState,gameStats){
                         console.log('GAME STATE IS: '+gameState);
                     },
@@ -149,7 +202,7 @@ domready(function() {
                                 cardNode.innerHTML = '';
                                 callMeHasBeenCalled = true;
                             }
-                        }
+                        };
                         var timer = setTimeout(function(){
                             callMe();
                         },2e3);
@@ -158,7 +211,7 @@ domready(function() {
                     removeCard : function(gameConf,card){
                         var cardNode = document.getElementById(class_postfix+card.position);
                         cardNode.domRemoveClass().domAddClass(selectors.game.state.empty+' card');
-                        fadeoutImage(cardNode.children[0])
+                        fadeoutImage(cardNode.children[0]);
                     },
                     clearBoard : function(){
                         var root = document.getElementById(selectors.game.rootId),
@@ -169,12 +222,18 @@ domready(function() {
                     },
                     generateBoard : function(gameConf,numberOfcards){
                         var root = document.getElementById(selectors.game.rootId);
-                        root.setAttribute('gameId',gameConf.gameId);
-                        for (var i = 0; i < numberOfcards; i++) {
-                            var node = domOpts.createElement('div',
-                                class_postfix + i,'card').domAppendTo(root);
-                            addClickEvent(node);
-                        }
+                        serverMethods.clearBoard();
+                        // TODO hier weiter bla bla
+                        gui.gameLoadingMessage.show('New game starts in some seconds');
+                        setTimeout(function(){
+                            gui.gameLoadingMessage.hide();
+                            root.setAttribute('gameId',gameConf.gameId);
+                            for (var i = 0; i < numberOfcards; i++) {
+                                var node = domOpts.createElement('div',
+                                    class_postfix + i,'card').domAppendTo(root);
+                                addClickEvent(node);
+                            }
+                        },config.createNewBoardDelay);
                     }
                 };
             // register click lister to board root
@@ -194,10 +253,11 @@ domready(function() {
     d.on('remote', function (server) {
         game.memo.askServer = server;
         console.log('Connected!',server);
-        game.memo.askServer.registerUser(game.memo.serverCallees,user, function(id){
+        game.memo.askServer.registerUser(game.memo.serverCallees, user, function(id){
             user.id = id;
-            game.memo.askServer.startNewGame(user.id,{ gametype : C.GAME_TYPES.SINGLE, gameVariant : C.GAME_VARIANTS.moreAndMore, numberOfSymbols : 30 },function(gameId){
+            game.memo.askServer.startNewGame(user.id, { gametype : C.GAME_TYPES.SINGLE, gameVariant : C.GAME_VARIANTS.moreAndMore, numberOfSymbols : 30 },function(gameId){
                 game.memo.currentGameId = gameId;
+                console.log(game);
             });
         });
     });

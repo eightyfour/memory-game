@@ -24,6 +24,7 @@
 }
 #memory #board {
     width: 812px;
+    float: left;
 }
 #memory .card.open{
     background-color: white;
@@ -60,4 +61,11 @@
 }
 #gameStatsPanel{
 
+}
+#gameStatsPanel .data{
+    display: inline;
+    padding-left: 10px;
+}
+#boardMessage{
+    height: 20px;
 }
