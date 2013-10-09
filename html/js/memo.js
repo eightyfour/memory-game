@@ -49,7 +49,8 @@ domready(function() {
                     boardMessage : 'boardMessage',
                     gameStatsPanel : {
                         root : 'gameStatsPanel',
-                        doubleSelected : 'doubleSelected'
+                        doubleSelected : 'doubleSelected',
+                        matches : 'matches'
                     }
                 }
             },
@@ -174,6 +175,12 @@ domready(function() {
                             data = node.getElementsByClassName(selectors.env.gameStatsPanel.doubleSelected)[0];
                             data.getElementsByClassName('data')[0].innerText =  gameStats.doubleSelected;
                         }
+                        if(gameStats.hasOwnProperty('matches')) {
+                            node = document.getElementById(selectors.env.gameStatsPanel.root);
+                            data = node.getElementsByClassName(selectors.env.gameStatsPanel.matches)[0];
+                            data.getElementsByClassName('data')[0].innerText =  gameStats.matches;
+                        }
+
                     },
                     gameEnds : function(gameConf,gameState,gameStats){
                         console.log('GAME STATE IS: '+gameState);
@@ -210,8 +217,13 @@ domready(function() {
                     },
                     removeCard : function(gameConf,card){
                         var cardNode = document.getElementById(class_postfix+card.position);
-                        cardNode.domRemoveClass().domAddClass(selectors.game.state.empty+' card');
-                        fadeoutImage(cardNode.children[0]);
+                        if (cardNode) {
+                            cardNode.domRemoveClass().domAddClass(selectors.game.state.empty+' card');
+                            fadeoutImage(cardNode.children[0]);
+                        } else {
+                            // TODO find out why this is called - could be a bug
+                            console.log('No cardnode was found');
+                        }
                     },
                     clearBoard : function(){
                         var root = document.getElementById(selectors.game.rootId),
