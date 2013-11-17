@@ -23,7 +23,8 @@ module.exports = {
     },
     GAME_VARIANTS : {
         normal : 0,
-        moreAndMore : 1
+        moreAndMore : 1,
+        multiplayer : 2
     }
 };
 
@@ -167,6 +168,22 @@ domready(function () {
                         }
                         console.log('remove User', user);
                     }
+                },
+                gameSpecific : {
+                    showOpenGame : function (value) {
+                        var root = document.getElementById('actualGames'),
+                            li = domOpts.createElement('li', 'openGame_' + value.gameId);
+                        li.addEventListener('click', function Select(e) {
+
+                            console.log('Try join game: ' + value.gameId + " as user with ID: " + user.id);
+                            value.join(user.id);
+                        }, false);
+                        li.innerText = value.gameId;
+                        li.domAppendTo(root);
+                    },
+                    removeOpenGame : function (value) {
+                        document.getElementById('openGame_' + value.gameId).domRemove();
+                    }
                 }
             };
 
@@ -212,105 +229,109 @@ domready(function () {
                     }, false);
                 },
                 serverMethods = {
-                    up : {
-                        addUser : function (user) {
-                            gui.userPool.addNewUser(user);
-                        },
-                        removeUser : function (user) {
-                            gui.userPool.removeUser(user);
+                    addUser : function (user) {
+                        gui.userPool.addNewUser(user);
+                    },
+                    removeUser : function (user) {
+                        gui.userPool.removeUser(user);
+                    },
+
+                    showToast : function () {
+                    //  console.log.apply(console,[].slice.call(arguments));
+                        toast.showMessage.apply(null, [].slice.call(arguments));
+                    },
+                    printDebug : function () {
+                        console.log.apply(console, [].slice.call(arguments));
+                    //  toast.showMessage.apply(null,[].slice.call(arguments));
+                    },
+                    updateGameStats : function (gameStats) {
+                        var node, data;
+                        if (gameStats.hasOwnProperty('doubleSelected')) {
+                            node = document.getElementById(selectors.env.gameStatsPanel.root);
+                            data = node.getElementsByClassName(selectors.env.gameStatsPanel.doubleSelected)[0];
+                            data.getElementsByClassName('data')[0].innerText =  gameStats.doubleSelected;
+                        }
+                        if (gameStats.hasOwnProperty('matches')) {
+                            node = document.getElementById(selectors.env.gameStatsPanel.root);
+                            data = node.getElementsByClassName(selectors.env.gameStatsPanel.matches)[0];
+                            data.getElementsByClassName('data')[0].innerText =  gameStats.matches;
+                        }
+
+                    },
+                    gameEnds : function (gameConf, gameState, gameStats) {
+                        console.log('GAME STATE IS: ' + gameState);
+                    },
+                    /**
+                     * handle list of current games
+                     */
+                    gameOverview : function (key, value) {
+                        gui.gameSpecific[key](value);
+                    },
+                    showMatchedCard : function (gameConf, firstCard, secondCard) {
+                        serverMethods.showCard(gameConf, secondCard);
+                        setTimeout(function () {
+                            // TODO check wich type is used - than use eqeqeq
+                            if (gameConf.gameId === parseInt(document.getElementById(selectors.game.rootId).getAttribute('gameId'), 10)) {
+                                serverMethods.removeCard(gameConf, firstCard);
+                                serverMethods.removeCard(gameConf, secondCard);
+                            }
+                        }, 2e3);
+                    },
+                    showCard : function (gameConf, card) {
+                        var cardNode = document.getElementById(class_postfix + card.position);
+                        cardNode.domRemoveClass(selectors.game.state.hidden).domAddClass(card.type + ' ' + selectors.game.state.open);
+                        cardNode.appendChild(getImage(card.type));
+                    },
+                    hideCard : function (gameConf, card) {
+                        var cardNode = document.getElementById(class_postfix + card.position),
+                            callMeHasBeenCalled = false,
+                            timer,
+                            callMe = function () {
+                                if (callMeHasBeenCalled === false) {
+                                    timer.hasOwnProperty('clearTimeout') && timer.clearTimeout();
+                                    cardNode.domRemoveClass(card.type + ' ' + selectors.game.state.open).domAddClass(selectors.game.state.hidden);
+                                    cardNode.innerHTML = '';
+                                    callMeHasBeenCalled = true;
+                                }
+                            };
+                        timer = setTimeout(function () {
+                            callMe();
+                        }, 2e3);
+                        gameEvents.rootClickedQueue.push(callMe);
+                    },
+                    removeCard : function (gameConf, card) {
+                        var cardNode = document.getElementById(class_postfix + card.position);
+                        if (cardNode) {
+                            cardNode.domRemoveClass().domAddClass(selectors.game.state.empty + ' card');
+                            fadeoutImage(cardNode.children[0]);
+                        } else {
+                            // TODO find out why this is called - could be a bug
+                            console.log('No cardnode was found');
                         }
                     },
-                    gs : {
-                        showToast : function () {
-                        //  console.log.apply(console,[].slice.call(arguments));
-                            toast.showMessage.apply(null, [].slice.call(arguments));
-                        },
-                        printDebug : function () {
-                            console.log.apply(console, [].slice.call(arguments));
-                        //  toast.showMessage.apply(null,[].slice.call(arguments));
-                        },
-                        updateGameStats : function (gameStats) {
-                            var node, data;
-                            if (gameStats.hasOwnProperty('doubleSelected')) {
-                                node = document.getElementById(selectors.env.gameStatsPanel.root);
-                                data = node.getElementsByClassName(selectors.env.gameStatsPanel.doubleSelected)[0];
-                                data.getElementsByClassName('data')[0].innerText =  gameStats.doubleSelected;
-                            }
-                            if (gameStats.hasOwnProperty('matches')) {
-                                node = document.getElementById(selectors.env.gameStatsPanel.root);
-                                data = node.getElementsByClassName(selectors.env.gameStatsPanel.matches)[0];
-                                data.getElementsByClassName('data')[0].innerText =  gameStats.matches;
-                            }
+                    clearBoard : function () {
+                        var root = document.getElementById(selectors.game.rootId),
+                            cards = Array.prototype.slice.call(document.getElementById(selectors.game.rootId).children);
+                        cards.forEach(function (node) {
+                            root.removeChild(node);
+                        });
+                    },
+                    generateBoard : function (gameConf, numberOfcards) {
+                        var root = document.getElementById(selectors.game.rootId);
+                        serverMethods.clearBoard();
 
-                        },
-                        gameEnds : function (gameConf, gameState, gameStats) {
-                            console.log('GAME STATE IS: ' + gameState);
-                        },
-                        showMatchedCard : function (gameConf, firstCard, secondCard) {
-                            serverMethods.gs.showCard(gameConf, secondCard);
-                            setTimeout(function () {
-                                // TODO check wich type is used - than use eqeqeq
-                                if (gameConf.gameId === parseInt(document.getElementById(selectors.game.rootId).getAttribute('gameId'), 10)) {
-                                    serverMethods.gs.removeCard(gameConf, firstCard);
-                                    serverMethods.gs.removeCard(gameConf, secondCard);
-                                }
-                            }, 2e3);
-                        },
-                        showCard : function (gameConf, card) {
-                            var cardNode = document.getElementById(class_postfix + card.position);
-                            cardNode.domRemoveClass(selectors.game.state.hidden).domAddClass(card.type + ' ' + selectors.game.state.open);
-                            cardNode.appendChild(getImage(card.type));
-                        },
-                        hideCard : function (gameConf, card) {
-                            var cardNode = document.getElementById(class_postfix + card.position),
-                                callMeHasBeenCalled = false,
-                                timer,
-                                callMe = function () {
-                                    if (callMeHasBeenCalled === false) {
-                                        timer.hasOwnProperty('clearTimeout') && timer.clearTimeout();
-                                        cardNode.domRemoveClass(card.type + ' ' + selectors.game.state.open).domAddClass(selectors.game.state.hidden);
-                                        cardNode.innerHTML = '';
-                                        callMeHasBeenCalled = true;
-                                    }
-                                };
-                            timer = setTimeout(function () {
-                                callMe();
-                            }, 2e3);
-                            gameEvents.rootClickedQueue.push(callMe);
-                        },
-                        removeCard : function (gameConf, card) {
-                            var cardNode = document.getElementById(class_postfix + card.position);
-                            if (cardNode) {
-                                cardNode.domRemoveClass().domAddClass(selectors.game.state.empty + ' card');
-                                fadeoutImage(cardNode.children[0]);
-                            } else {
-                                // TODO find out why this is called - could be a bug
-                                console.log('No cardnode was found');
+                        gui.gameLoadingMessage.show('New game starts in some seconds');
+                        setTimeout(function () {
+                            var i, node;
+                            gui.gameLoadingMessage.hide();
+                            root.setAttribute('gameId', gameConf.gameId);
+                            for (i = 0; i < numberOfcards; i++) {
+                                node = domOpts.createElement('div',
+                                    class_postfix + i, 'card').domAppendTo(root);
+                                addClickEvent(node);
                             }
-                        },
-                        clearBoard : function () {
-                            var root = document.getElementById(selectors.game.rootId),
-                                cards = Array.prototype.slice.call(document.getElementById(selectors.game.rootId).children);
-                            cards.forEach(function (node) {
-                                root.removeChild(node);
-                            });
-                        },
-                        generateBoard : function (gameConf, numberOfcards) {
-                            var root = document.getElementById(selectors.game.rootId);
-                            serverMethods.gs.clearBoard();
+                        }, config.createNewBoardDelay);
 
-                            gui.gameLoadingMessage.show('New game starts in some seconds');
-                            setTimeout(function () {
-                                var i, node;
-                                gui.gameLoadingMessage.hide();
-                                root.setAttribute('gameId', gameConf.gameId);
-                                for (i = 0; i < numberOfcards; i++) {
-                                    node = domOpts.createElement('div',
-                                        class_postfix + i, 'card').domAppendTo(root);
-                                    addClickEvent(node);
-                                }
-                            }, config.createNewBoardDelay);
-                        }
                     }
                 };
             // register click lister to board root
@@ -325,8 +346,6 @@ domready(function () {
     };
 
 
-
-
     d.on('remote', function (server) {
 
         server.init(window.game.memo.serverCallees, function (sId) {
@@ -335,11 +354,13 @@ domready(function () {
         window.game.memo.askServer = server.gs;
         window.userPool = server.up;
 
-        // rest should be moved away:
+        // rest should be removed from here:
 
+        // register user
         user.name = window.prompt('Enter your name please');
         window.userPool.join(user.name);
 
+        // start a new game
         window.game.memo.askServer.startNewGame({
             gametype : C.GAME_TYPES.SINGLE,
             gameVariant : C.GAME_VARIANTS.moreAndMore,
@@ -353,7 +374,63 @@ domready(function () {
     d.pipe(stream).pipe(d);
 });
 })()
-},{"../../lib/CONSTANT.js":1,"dom-opts":3,"domready":4,"shoe":5,"dnode":6,"message-toast":7}],3:[function(require,module,exports){
+},{"../../lib/CONSTANT.js":1,"domready":3,"dom-opts":4,"shoe":5,"dnode":6,"message-toast":7}],3:[function(require,module,exports){
+/*!
+  * domready (c) Dustin Diaz 2012 - License MIT
+  */
+!function (name, definition) {
+  if (typeof module != 'undefined') module.exports = definition()
+  else if (typeof define == 'function' && typeof define.amd == 'object') define(definition)
+  else this[name] = definition()
+}('domready', function (ready) {
+
+  var fns = [], fn, f = false
+    , doc = document
+    , testEl = doc.documentElement
+    , hack = testEl.doScroll
+    , domContentLoaded = 'DOMContentLoaded'
+    , addEventListener = 'addEventListener'
+    , onreadystatechange = 'onreadystatechange'
+    , readyState = 'readyState'
+    , loadedRgx = hack ? /^loaded|^c/ : /^loaded|c/
+    , loaded = loadedRgx.test(doc[readyState])
+
+  function flush(f) {
+    loaded = 1
+    while (f = fns.shift()) f()
+  }
+
+  doc[addEventListener] && doc[addEventListener](domContentLoaded, fn = function () {
+    doc.removeEventListener(domContentLoaded, fn, f)
+    flush()
+  }, f)
+
+
+  hack && doc.attachEvent(onreadystatechange, fn = function () {
+    if (/^c/.test(doc[readyState])) {
+      doc.detachEvent(onreadystatechange, fn)
+      flush()
+    }
+  })
+
+  return (ready = hack ?
+    function (fn) {
+      self != top ?
+        loaded ? fn() : fns.push(fn) :
+        function () {
+          try {
+            testEl.doScroll('left')
+          } catch (e) {
+            return setTimeout(function() { ready(fn) }, 50)
+          }
+          fn()
+        }()
+    } :
+    function (fn) {
+      loaded ? fn() : fns.push(fn)
+    })
+})
+},{}],4:[function(require,module,exports){
 (function(){/*global HTMLElement */
 /*jslint browser: true */
 
@@ -422,62 +499,6 @@ HTMLElement.prototype.domAppendTo = function (elem) {
     return this;
 };
 })()
-},{}],4:[function(require,module,exports){
-/*!
-  * domready (c) Dustin Diaz 2012 - License MIT
-  */
-!function (name, definition) {
-  if (typeof module != 'undefined') module.exports = definition()
-  else if (typeof define == 'function' && typeof define.amd == 'object') define(definition)
-  else this[name] = definition()
-}('domready', function (ready) {
-
-  var fns = [], fn, f = false
-    , doc = document
-    , testEl = doc.documentElement
-    , hack = testEl.doScroll
-    , domContentLoaded = 'DOMContentLoaded'
-    , addEventListener = 'addEventListener'
-    , onreadystatechange = 'onreadystatechange'
-    , readyState = 'readyState'
-    , loadedRgx = hack ? /^loaded|^c/ : /^loaded|c/
-    , loaded = loadedRgx.test(doc[readyState])
-
-  function flush(f) {
-    loaded = 1
-    while (f = fns.shift()) f()
-  }
-
-  doc[addEventListener] && doc[addEventListener](domContentLoaded, fn = function () {
-    doc.removeEventListener(domContentLoaded, fn, f)
-    flush()
-  }, f)
-
-
-  hack && doc.attachEvent(onreadystatechange, fn = function () {
-    if (/^c/.test(doc[readyState])) {
-      doc.detachEvent(onreadystatechange, fn)
-      flush()
-    }
-  })
-
-  return (ready = hack ?
-    function (fn) {
-      self != top ?
-        loaded ? fn() : fns.push(fn) :
-        function () {
-          try {
-            testEl.doScroll('left')
-          } catch (e) {
-            return setTimeout(function() { ready(fn) }, 50)
-          }
-          fn()
-        }()
-    } :
-    function (fn) {
-      loaded ? fn() : fns.push(fn)
-    })
-})
 },{}],7:[function(require,module,exports){
 (function(){/**
  * TODO fade out are flickered if maxLengthOfMessages exceeded

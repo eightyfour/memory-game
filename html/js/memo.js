@@ -137,6 +137,22 @@ domready(function () {
                         }
                         console.log('remove User', user);
                     }
+                },
+                gameSpecific : {
+                    showOpenGame : function (value) {
+                        var root = document.getElementById('actualGames'),
+                            li = domOpts.createElement('li', 'openGame_' + value.gameId);
+                        li.addEventListener('click', function Select(e) {
+
+                            console.log('Try join game: ' + value.gameId + " as user with ID: " + user.id);
+                            value.join(user.id);
+                        }, false);
+                        li.innerText = value.gameId;
+                        li.domAppendTo(root);
+                    },
+                    removeOpenGame : function (value) {
+                        document.getElementById('openGame_' + value.gameId).domRemove();
+                    }
                 }
             };
 
@@ -182,105 +198,109 @@ domready(function () {
                     }, false);
                 },
                 serverMethods = {
-                    up : {
-                        addUser : function (user) {
-                            gui.userPool.addNewUser(user);
-                        },
-                        removeUser : function (user) {
-                            gui.userPool.removeUser(user);
+                    addUser : function (user) {
+                        gui.userPool.addNewUser(user);
+                    },
+                    removeUser : function (user) {
+                        gui.userPool.removeUser(user);
+                    },
+
+                    showToast : function () {
+                    //  console.log.apply(console,[].slice.call(arguments));
+                        toast.showMessage.apply(null, [].slice.call(arguments));
+                    },
+                    printDebug : function () {
+                        console.log.apply(console, [].slice.call(arguments));
+                    //  toast.showMessage.apply(null,[].slice.call(arguments));
+                    },
+                    updateGameStats : function (gameStats) {
+                        var node, data;
+                        if (gameStats.hasOwnProperty('doubleSelected')) {
+                            node = document.getElementById(selectors.env.gameStatsPanel.root);
+                            data = node.getElementsByClassName(selectors.env.gameStatsPanel.doubleSelected)[0];
+                            data.getElementsByClassName('data')[0].innerText =  gameStats.doubleSelected;
+                        }
+                        if (gameStats.hasOwnProperty('matches')) {
+                            node = document.getElementById(selectors.env.gameStatsPanel.root);
+                            data = node.getElementsByClassName(selectors.env.gameStatsPanel.matches)[0];
+                            data.getElementsByClassName('data')[0].innerText =  gameStats.matches;
+                        }
+
+                    },
+                    gameEnds : function (gameConf, gameState, gameStats) {
+                        console.log('GAME STATE IS: ' + gameState);
+                    },
+                    /**
+                     * handle list of current games
+                     */
+                    gameOverview : function (key, value) {
+                        gui.gameSpecific[key](value);
+                    },
+                    showMatchedCard : function (gameConf, firstCard, secondCard) {
+                        serverMethods.showCard(gameConf, secondCard);
+                        setTimeout(function () {
+                            // TODO check wich type is used - than use eqeqeq
+                            if (gameConf.gameId === parseInt(document.getElementById(selectors.game.rootId).getAttribute('gameId'), 10)) {
+                                serverMethods.removeCard(gameConf, firstCard);
+                                serverMethods.removeCard(gameConf, secondCard);
+                            }
+                        }, 2e3);
+                    },
+                    showCard : function (gameConf, card) {
+                        var cardNode = document.getElementById(class_postfix + card.position);
+                        cardNode.domRemoveClass(selectors.game.state.hidden).domAddClass(card.type + ' ' + selectors.game.state.open);
+                        cardNode.appendChild(getImage(card.type));
+                    },
+                    hideCard : function (gameConf, card) {
+                        var cardNode = document.getElementById(class_postfix + card.position),
+                            callMeHasBeenCalled = false,
+                            timer,
+                            callMe = function () {
+                                if (callMeHasBeenCalled === false) {
+                                    timer.hasOwnProperty('clearTimeout') && timer.clearTimeout();
+                                    cardNode.domRemoveClass(card.type + ' ' + selectors.game.state.open).domAddClass(selectors.game.state.hidden);
+                                    cardNode.innerHTML = '';
+                                    callMeHasBeenCalled = true;
+                                }
+                            };
+                        timer = setTimeout(function () {
+                            callMe();
+                        }, 2e3);
+                        gameEvents.rootClickedQueue.push(callMe);
+                    },
+                    removeCard : function (gameConf, card) {
+                        var cardNode = document.getElementById(class_postfix + card.position);
+                        if (cardNode) {
+                            cardNode.domRemoveClass().domAddClass(selectors.game.state.empty + ' card');
+                            fadeoutImage(cardNode.children[0]);
+                        } else {
+                            // TODO find out why this is called - could be a bug
+                            console.log('No cardnode was found');
                         }
                     },
-                    gs : {
-                        showToast : function () {
-                        //  console.log.apply(console,[].slice.call(arguments));
-                            toast.showMessage.apply(null, [].slice.call(arguments));
-                        },
-                        printDebug : function () {
-                            console.log.apply(console, [].slice.call(arguments));
-                        //  toast.showMessage.apply(null,[].slice.call(arguments));
-                        },
-                        updateGameStats : function (gameStats) {
-                            var node, data;
-                            if (gameStats.hasOwnProperty('doubleSelected')) {
-                                node = document.getElementById(selectors.env.gameStatsPanel.root);
-                                data = node.getElementsByClassName(selectors.env.gameStatsPanel.doubleSelected)[0];
-                                data.getElementsByClassName('data')[0].innerText =  gameStats.doubleSelected;
-                            }
-                            if (gameStats.hasOwnProperty('matches')) {
-                                node = document.getElementById(selectors.env.gameStatsPanel.root);
-                                data = node.getElementsByClassName(selectors.env.gameStatsPanel.matches)[0];
-                                data.getElementsByClassName('data')[0].innerText =  gameStats.matches;
-                            }
+                    clearBoard : function () {
+                        var root = document.getElementById(selectors.game.rootId),
+                            cards = Array.prototype.slice.call(document.getElementById(selectors.game.rootId).children);
+                        cards.forEach(function (node) {
+                            root.removeChild(node);
+                        });
+                    },
+                    generateBoard : function (gameConf, numberOfcards) {
+                        var root = document.getElementById(selectors.game.rootId);
+                        serverMethods.clearBoard();
 
-                        },
-                        gameEnds : function (gameConf, gameState, gameStats) {
-                            console.log('GAME STATE IS: ' + gameState);
-                        },
-                        showMatchedCard : function (gameConf, firstCard, secondCard) {
-                            serverMethods.gs.showCard(gameConf, secondCard);
-                            setTimeout(function () {
-                                // TODO check wich type is used - than use eqeqeq
-                                if (gameConf.gameId === parseInt(document.getElementById(selectors.game.rootId).getAttribute('gameId'), 10)) {
-                                    serverMethods.gs.removeCard(gameConf, firstCard);
-                                    serverMethods.gs.removeCard(gameConf, secondCard);
-                                }
-                            }, 2e3);
-                        },
-                        showCard : function (gameConf, card) {
-                            var cardNode = document.getElementById(class_postfix + card.position);
-                            cardNode.domRemoveClass(selectors.game.state.hidden).domAddClass(card.type + ' ' + selectors.game.state.open);
-                            cardNode.appendChild(getImage(card.type));
-                        },
-                        hideCard : function (gameConf, card) {
-                            var cardNode = document.getElementById(class_postfix + card.position),
-                                callMeHasBeenCalled = false,
-                                timer,
-                                callMe = function () {
-                                    if (callMeHasBeenCalled === false) {
-                                        timer.hasOwnProperty('clearTimeout') && timer.clearTimeout();
-                                        cardNode.domRemoveClass(card.type + ' ' + selectors.game.state.open).domAddClass(selectors.game.state.hidden);
-                                        cardNode.innerHTML = '';
-                                        callMeHasBeenCalled = true;
-                                    }
-                                };
-                            timer = setTimeout(function () {
-                                callMe();
-                            }, 2e3);
-                            gameEvents.rootClickedQueue.push(callMe);
-                        },
-                        removeCard : function (gameConf, card) {
-                            var cardNode = document.getElementById(class_postfix + card.position);
-                            if (cardNode) {
-                                cardNode.domRemoveClass().domAddClass(selectors.game.state.empty + ' card');
-                                fadeoutImage(cardNode.children[0]);
-                            } else {
-                                // TODO find out why this is called - could be a bug
-                                console.log('No cardnode was found');
+                        gui.gameLoadingMessage.show('New game starts in some seconds');
+                        setTimeout(function () {
+                            var i, node;
+                            gui.gameLoadingMessage.hide();
+                            root.setAttribute('gameId', gameConf.gameId);
+                            for (i = 0; i < numberOfcards; i++) {
+                                node = domOpts.createElement('div',
+                                    class_postfix + i, 'card').domAppendTo(root);
+                                addClickEvent(node);
                             }
-                        },
-                        clearBoard : function () {
-                            var root = document.getElementById(selectors.game.rootId),
-                                cards = Array.prototype.slice.call(document.getElementById(selectors.game.rootId).children);
-                            cards.forEach(function (node) {
-                                root.removeChild(node);
-                            });
-                        },
-                        generateBoard : function (gameConf, numberOfcards) {
-                            var root = document.getElementById(selectors.game.rootId);
-                            serverMethods.gs.clearBoard();
+                        }, config.createNewBoardDelay);
 
-                            gui.gameLoadingMessage.show('New game starts in some seconds');
-                            setTimeout(function () {
-                                var i, node;
-                                gui.gameLoadingMessage.hide();
-                                root.setAttribute('gameId', gameConf.gameId);
-                                for (i = 0; i < numberOfcards; i++) {
-                                    node = domOpts.createElement('div',
-                                        class_postfix + i, 'card').domAppendTo(root);
-                                    addClickEvent(node);
-                                }
-                            }, config.createNewBoardDelay);
-                        }
                     }
                 };
             // register click lister to board root

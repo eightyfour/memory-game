@@ -54,7 +54,8 @@
         <label for="gameVariant">Gamevariant</label>
         <select id="gameVariant" name="gameVariant" title="Select a game variant">
             <option value="0">Normal</option>
-            <option value="1" selected="true">More and more</option>
+            <option value="1">More and more</option>
+            <option value="2" selected="true">Multiplayer</option>
         </select>
 
         <button href="javascript:void(0);" onclick="window.game.memo.ui.createNewGame()">Create new Game</button>
@@ -65,6 +66,12 @@
         <div class="doubleSelected">Double selected:<div class="data">0</div></div>
         <div class="matches">Pairs found:<div class="data">0</div></div>
         <!-- display the state of the game -->
+    </div>
+
+    <div id="multiplayer">
+        <ul id="actualGames">
+
+        </ul>
     </div>
 
 </div>
