@@ -143,9 +143,8 @@ domready(function () {
                         var root = document.getElementById('actualGames'),
                             li = domOpts.createElement('li', 'openGame_' + value.gameId);
                         li.addEventListener('click', function Select(e) {
-
-                            console.log('Try join game: ' + value.gameId + " as user with ID: " + user.id);
-                            value.join(user.id);
+                            console.log('Try join game: ' + value.creator.uId + " as user with ID: " + user.id);
+                            that.askServer.joinGame(value.creator.uId);
                         }, false);
                         li.innerText = value.gameId;
                         li.domAppendTo(root);
@@ -204,7 +203,6 @@ domready(function () {
                     removeUser : function (user) {
                         gui.userPool.removeUser(user);
                     },
-
                     showToast : function () {
                     //  console.log.apply(console,[].slice.call(arguments));
                         toast.showMessage.apply(null, [].slice.call(arguments));
@@ -251,22 +249,24 @@ domready(function () {
                         cardNode.domRemoveClass(selectors.game.state.hidden).domAddClass(card.type + ' ' + selectors.game.state.open);
                         cardNode.appendChild(getImage(card.type));
                     },
-                    hideCard : function (gameConf, card) {
-                        var cardNode = document.getElementById(class_postfix + card.position),
-                            callMeHasBeenCalled = false,
-                            timer,
-                            callMe = function () {
-                                if (callMeHasBeenCalled === false) {
-                                    timer.hasOwnProperty('clearTimeout') && timer.clearTimeout();
-                                    cardNode.domRemoveClass(card.type + ' ' + selectors.game.state.open).domAddClass(selectors.game.state.hidden);
-                                    cardNode.innerHTML = '';
-                                    callMeHasBeenCalled = true;
-                                }
-                            };
-                        timer = setTimeout(function () {
-                            callMe();
-                        }, 2e3);
-                        gameEvents.rootClickedQueue.push(callMe);
+                    hideCards : function (gameConf, cards) {
+                        cards.forEach(function (card) {
+                            var cardNode = document.getElementById(class_postfix + card.position),
+                                callMeHasBeenCalled = false,
+                                timer,
+                                callMe = function () {
+                                    if (callMeHasBeenCalled === false) {
+                                        timer.hasOwnProperty('clearTimeout') && timer.clearTimeout();
+                                        cardNode.domRemoveClass(card.type + ' ' + selectors.game.state.open).domAddClass(selectors.game.state.hidden);
+                                        cardNode.innerHTML = '';
+                                        callMeHasBeenCalled = true;
+                                    }
+                                };
+                            timer = setTimeout(function () {
+                                callMe();
+                            }, 2e3);
+                            gameEvents.rootClickedQueue.push(callMe);
+                        });
                     },
                     removeCard : function (gameConf, card) {
                         var cardNode = document.getElementById(class_postfix + card.position);
