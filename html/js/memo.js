@@ -151,6 +151,25 @@ domready(function () {
                     },
                     removeOpenGame : function (value) {
                         document.getElementById('openGame_' + value.gameId).domRemove();
+                    },
+                    startGame : function (obj) {
+                        if (obj.users[user.id].turn) {
+                            toast.showMessage('You can start the game');
+                        }
+                    },
+                    setTurn : function (bool) {
+                        var node = document.getElementById(selectors.env.boardMessage), msg, bgc;
+
+                        if (bool) {
+                            msg = "It's your turn";
+                            bgc = "#adff2f";
+                        } else {
+                            msg = "...wait for opponent";
+                            bgc = "#708090";
+                        }
+                        node.innerText = msg;
+                        node.style.backgroundColor = bgc;
+                        node.style.visibility = 'visible';
                     }
                 }
             };
