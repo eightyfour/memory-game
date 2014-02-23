@@ -1,4 +1,6 @@
-Small toolbox for standard dom ops and client side features
+dom-opts
 ============
+Small toolbox for standard dom ops and client side features
+
 
 
