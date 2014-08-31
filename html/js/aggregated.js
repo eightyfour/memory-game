@@ -1,31 +1,177 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+/**
+ * Created by han on 31.08.14.
+ */
+
+var shoe = require('shoe'),
+    dnode = require('dnode'),
+
+    Trade = function (mount) {
+        var readyQueue = [],
+            server,
+            stream = shoe(mount),
+            d = dnode(),
+            that = this;
+
+        this.userPool = {};
+        this.gs = {};
+
+        d.on('remote', function (remote) {
+            server = remote;
+            console.log('setup remote');
+
+            that.gs = server.gs;
+            that.userPool = server.up;
+
+            // call ready queue - and clear
+            readyQueue.forEach(function (cb) {
+                cb();
+            });
+            readyQueue = null;
+
+        });
+        d.pipe(stream).pipe(d);
+
+
+        this.ready = function (cb) {
+            if (readyQueue !== null) {
+                readyQueue.push(cb);
+            } else {
+                cb();
+            }
+        };
+
+        this.initConnection = function (clientConnection, cb) {
+            this.ready(function () {
+                server.init(clientConnection, cb);
+            });
+        };
+    }
+
+module.exports = Trade;
+},{"dnode":7,"shoe":20}],2:[function(require,module,exports){
+/**
+ * Created by han on 31.08.14.
+ */
+var userPool = function () {
+    var select = {
+        root : 'userPool',
+        idPostfix : 'u'
+    },
+    rootNode;
+
+    return {
+        add : function (node, attr) {
+            rootNode = node;
+        },
+        emitter : {
+            addNewUser : function (user) {
+                var node = domOpts.createElement('div',
+                        select.idPostfix + user.uId).domAppendTo(rootNode || select.root);
+                node.innerText = user.name;
+                console.log('addNewUser', user);
+            },
+            removeUser : function (user) {
+                var node = document.getElementById(select.idPostfix + user.uId);
+                if (node) {
+                    node.domRemove();
+                }
+                console.log('remove User', user);
+            }
+        }
+    }
+};
+
+module.exports = userPool;
+},{}],3:[function(require,module,exports){
+
+var emitter = function (ui, userPool, toast) {
+
+    return {
+        addUser : function (user) {
+            userPool.addNewUser(user);
+        },
+        removeUser : function (user) {
+            userPool.removeUser(user);
+        },
+        showToast : function () {
+            //  console.log.apply(console,[].slice.call(arguments));
+            toast.showMessage.apply(null, [].slice.call(arguments));
+        },
+        printDebug : function () {
+            console.log.apply(console, [].slice.call(arguments));
+            //  toast.showMessage.apply(null,[].slice.call(arguments));
+        },
+        updateGameStats : function (gameStats) {
+            if (gameStats.hasOwnProperty('doubleSelected')) {
+                ui.updateGameStats.doubleSelected(gameStats.doubleSelected);
+            }
+            if (gameStats.hasOwnProperty('matches')) {
+                ui.updateGameStats.matches(gameStats.matches);
+            }
+        },
+        gameEnds : function (gameConf, gameState, gameStats) {
+            console.log('GAME STATE IS: ' + gameState);
+        },
+        /**
+         * handle list of current games
+         */
+        gameOverview : function (key, value) {
+            console.log('gameOverview', key, value);
+            ui[key](value);
+        },
+        showMatchedCard : function (gameConf, firstCard, secondCard) {
+            ui.cards.match(gameConf, firstCard, secondCard);
+        },
+        showCard : function (gameConf, card) {
+            ui.cards.show(gameConf, card);
+        },
+        hideCards : function (gameConf, cards) {
+            ui.cards.hide(gameConf, cards);
+        },
+        removeCard : function (gameConf, card) {
+            ui.cards.remove(gameConf, card);
+        },
+        clearBoard : function () {
+            ui.board.clear();
+        },
+        generateBoard : function (gameConf, numberOfcards) {
+            ui.board.generateNew(gameConf, numberOfcards);
+        }
+    }
+}
+
+module.exports = emitter;
+},{}],4:[function(require,module,exports){
 /*global */
 /*jslint browser: true */
 /**
  *
  * @type {*}
  */
-var domready = require('domready'),
-    domOpts = require('dom-opts'),
-    shoe = require('shoe'),
-    dnode = require('dnode'),
+var domOpts = require('dom-opts'),
+    canny = require('canny'),
     toast = require('message-toast'),
     C = require('../../lib/CONSTANT.js'),
-
+    Trade = require('./Trade'),
+    trade = new Trade('/memory'),
+    emitter = require('./emitter'),
     user = {
         id : undefined,
         name : ''
-    },
-    stream = shoe('/memory'),
-    d = dnode();
+    };
 
-// publish domOpts
+canny.add('userPool', require('./c-userPool')());
+
+
+// publish required modules to global
+window.canny = canny;
 window.domOpts = domOpts;
 window.userPool = {};
 // create game namespace
 window.game = window.game || {};
 
-domready(function () {
+canny.ready(function () {
     "use strict";
     window.game.memo = new function () {
         var that = this,
@@ -120,32 +266,16 @@ domready(function () {
 
                     }
                 },
-                userPool : {
-                    select : {
-                        root : 'userPool',
-                        idPostfix : 'u'
-                    },
-                    addNewUser : function (user) {
-                        var node = domOpts.createElement('div',
-                            this.select.idPostfix + user.uId).domAppendTo(this.select.root);
-                        node.innerText = user.name;
-                        console.log('addNewUser', user);
-                    },
-                    removeUser : function (user) {
-                        var node = document.getElementById(this.select.idPostfix + user.uId);
-                        if (node) {
-                            node.domRemove();
-                        }
-                        console.log('remove User', user);
-                    }
-                },
+                /**
+                 * game specific lobby
+                 */
                 gameSpecific : {
                     showOpenGame : function (value) {
                         var root = document.getElementById('actualGames'),
                             li = domOpts.createElement('li', 'openGame_' + value.gameId);
                         li.addEventListener('click', function Select(e) {
                             console.log('Try join game: ' + value.creator.uId + " as user with ID: " + user.id);
-                            that.askServer.joinGame(value.creator.uId);
+                            trade.gs.joinGame(value.creator.uId);
                         }, false);
                         li.innerText = value.gameId;
                         li.domAppendTo(root);
@@ -181,7 +311,7 @@ domready(function () {
             createNewGame : function () {
                 var numberOfSymbols = document.getElementById('numberOfSymbols').value,
                     gameVariant = document.getElementById('gameVariant').value;
-                that.askServer.startNewGame({
+                trade.gs.startNewGame({
                     gametype : C.GAME_TYPES.SINGLE,
                     numberOfSymbols : numberOfSymbols,
                     gameVariant : gameVariant
@@ -199,10 +329,8 @@ domready(function () {
             ui : undefined,
             error : undefined
         };
-        // bound server methods here - talk to server
-        this.askServer = {};
         // server callees called from server side
-        this.serverCallees = (function () {
+        this.ui = (function () {
 
             var class_postfix = "nr_",
                 config = {
@@ -212,115 +340,94 @@ domready(function () {
                     card.addEventListener('click', function Select(e) {
                         var id = this.getAttribute('id'),
                             position = id.split(class_postfix)[1];
-                        window.game.memo.askServer.takeCard(position);
+                        trade.gs.takeCard(position);
                         console.log('Ask server for take a card');
                     }, false);
                 },
-                serverMethods = {
-                    addUser : function (user) {
-                        gui.userPool.addNewUser(user);
-                    },
-                    removeUser : function (user) {
-                        gui.userPool.removeUser(user);
-                    },
-                    showToast : function () {
-                    //  console.log.apply(console,[].slice.call(arguments));
-                        toast.showMessage.apply(null, [].slice.call(arguments));
-                    },
-                    printDebug : function () {
-                        console.log.apply(console, [].slice.call(arguments));
-                    //  toast.showMessage.apply(null,[].slice.call(arguments));
-                    },
-                    updateGameStats : function (gameStats) {
-                        var node, data;
-                        if (gameStats.hasOwnProperty('doubleSelected')) {
-                            node = document.getElementById(selectors.env.gameStatsPanel.root);
-                            data = node.getElementsByClassName(selectors.env.gameStatsPanel.doubleSelected)[0];
-                            data.getElementsByClassName('data')[0].innerText =  gameStats.doubleSelected;
+                ui = {
+                    updateGameStats : {
+                        doubleSelected : function (msg) {
+                            var node = document.getElementById(selectors.env.gameStatsPanel.root),
+                                data = node.getElementsByClassName(selectors.env.gameStatsPanel.doubleSelected)[0];
+                            data.getElementsByClassName('data')[0].innerText = msg;
+                        },
+                        matches : function (msg) {
+                            var node = document.getElementById(selectors.env.gameStatsPanel.root),
+                                data = node.getElementsByClassName(selectors.env.gameStatsPanel.matches)[0];
+                            data.getElementsByClassName('data')[0].innerText =  msg;
                         }
-                        if (gameStats.hasOwnProperty('matches')) {
-                            node = document.getElementById(selectors.env.gameStatsPanel.root);
-                            data = node.getElementsByClassName(selectors.env.gameStatsPanel.matches)[0];
-                            data.getElementsByClassName('data')[0].innerText =  gameStats.matches;
-                        }
-
                     },
-                    gameEnds : function (gameConf, gameState, gameStats) {
-                        console.log('GAME STATE IS: ' + gameState);
-                    },
-                    /**
-                     * handle list of current games
-                     */
-                    gameOverview : function (key, value) {
-                        gui.gameSpecific[key](value);
-                    },
-                    showMatchedCard : function (gameConf, firstCard, secondCard) {
-                        serverMethods.showCard(gameConf, secondCard);
-                        setTimeout(function () {
-                            // TODO check wich type is used - than use eqeqeq
-                            if (gameConf.gameId === parseInt(document.getElementById(selectors.game.rootId).getAttribute('gameId'), 10)) {
-                                serverMethods.removeCard(gameConf, firstCard);
-                                serverMethods.removeCard(gameConf, secondCard);
-                            }
-                        }, 2e3);
-                    },
-                    showCard : function (gameConf, card) {
-                        var cardNode = document.getElementById(class_postfix + card.position);
-                        cardNode.domRemoveClass(selectors.game.state.hidden).domAddClass(card.type + ' ' + selectors.game.state.open);
-                        cardNode.appendChild(getImage(card.type));
-                    },
-                    hideCards : function (gameConf, cards) {
-                        cards.forEach(function (card) {
-                            var cardNode = document.getElementById(class_postfix + card.position),
-                                callMeHasBeenCalled = false,
-                                timer,
-                                callMe = function () {
-                                    if (callMeHasBeenCalled === false) {
-                                        timer.hasOwnProperty('clearTimeout') && timer.clearTimeout();
-                                        cardNode.domRemoveClass(card.type + ' ' + selectors.game.state.open).domAddClass(selectors.game.state.hidden);
-                                        cardNode.innerHTML = '';
-                                        callMeHasBeenCalled = true;
-                                    }
-                                };
-                            timer = setTimeout(function () {
-                                callMe();
+                    cards : {
+                        show : function (gameConf, card) {
+                            var cardNode = document.getElementById(class_postfix + card.position);
+                            cardNode.domRemoveClass(selectors.game.state.hidden).domAddClass(card.type + ' ' + selectors.game.state.open);
+                            cardNode.appendChild(getImage(card.type));
+                        },
+                        match : function (gameConf, firstCard, secondCard) {
+                            ui.cards.show(gameConf, secondCard);
+                            setTimeout(function () {
+                                // TODO check wich type is used - than use eqeqeq
+                                if (gameConf.gameId === parseInt(document.getElementById(selectors.game.rootId).getAttribute('gameId'), 10)) {
+                                    ui.cards.remove(gameConf, firstCard);
+                                    ui.cards.remove(gameConf, secondCard);
+                                }
                             }, 2e3);
-                            gameEvents.rootClickedQueue.push(callMe);
-                        });
-                    },
-                    removeCard : function (gameConf, card) {
-                        var cardNode = document.getElementById(class_postfix + card.position);
-                        if (cardNode) {
-                            cardNode.domRemoveClass().domAddClass(selectors.game.state.empty + ' card');
-                            fadeoutImage(cardNode.children[0]);
-                        } else {
-                            // TODO find out why this is called - could be a bug
-                            console.log('No cardnode was found');
+                        },
+                        hide : function (gameConf, cards) {
+                            cards.forEach(function (card) {
+                                var cardNode = document.getElementById(class_postfix + card.position),
+                                    callMeHasBeenCalled = false,
+                                    timer,
+                                    callMe = function () {
+                                        if (callMeHasBeenCalled === false) {
+                                            timer.hasOwnProperty('clearTimeout') && timer.clearTimeout();
+                                            cardNode.domRemoveClass(card.type + ' ' + selectors.game.state.open).domAddClass(selectors.game.state.hidden);
+                                            cardNode.innerHTML = '';
+                                            callMeHasBeenCalled = true;
+                                        }
+                                    };
+                                timer = setTimeout(function () {
+                                    callMe();
+                                }, 2e3);
+                                gameEvents.rootClickedQueue.push(callMe);
+                            });
+                        },
+                        remove : function (gameConf, card) {
+                            var cardNode = document.getElementById(class_postfix + card.position);
+                            if (cardNode) {
+                                cardNode.domRemoveClass().domAddClass(selectors.game.state.empty + ' card');
+                                fadeoutImage(cardNode.children[0]);
+                            } else {
+                                // TODO find out why this is called - could be a bug
+                                console.log('No cardnode was found');
+                            }
                         }
                     },
-                    clearBoard : function () {
-                        var root = document.getElementById(selectors.game.rootId),
-                            cards = Array.prototype.slice.call(document.getElementById(selectors.game.rootId).children);
-                        cards.forEach(function (node) {
-                            root.removeChild(node);
-                        });
-                    },
-                    generateBoard : function (gameConf, numberOfcards) {
-                        var root = document.getElementById(selectors.game.rootId);
-                        serverMethods.clearBoard();
+                    board : {
+                        clear : function () {
+                            var root = document.getElementById(selectors.game.rootId),
+                                cards = Array.prototype.slice.call(document.getElementById(selectors.game.rootId).children);
+                            cards.forEach(function (node) {
+                                root.removeChild(node);
+                            });
+                        },
+                        generateNew : function (gameConf, numberOfcards) {
+                            var root = document.getElementById(selectors.game.rootId);
+                            ui.board.clear();
 
-                        gui.gameLoadingMessage.show('New game starts in some seconds');
-                        setTimeout(function () {
-                            var i, node;
-                            gui.gameLoadingMessage.hide();
-                            root.setAttribute('gameId', gameConf.gameId);
-                            for (i = 0; i < numberOfcards; i++) {
-                                node = domOpts.createElement('div',
-                                    class_postfix + i, 'card').domAppendTo(root);
-                                addClickEvent(node);
-                            }
-                        }, config.createNewBoardDelay);
+                            gui.gameLoadingMessage.show('New game starts in some seconds');
 
+                            setTimeout(function () {
+                                var i, node;
+                                gui.gameLoadingMessage.hide();
+                                root.setAttribute('gameId', gameConf.gameId);
+                                for (i = 0; i < numberOfcards; i++) {
+                                    node = domOpts.createElement('div',
+                                            class_postfix + i, 'card').domAppendTo(root);
+                                    addClickEvent(node);
+                                }
+                            }, config.createNewBoardDelay);
+                        }
                     }
                 };
             // register click lister to board root
@@ -330,27 +437,23 @@ domready(function () {
                     gameEvents.clearRootClickedQueue();
                 }, false);
 
-            return serverMethods;
+            return ui;
         }());
     };
 
+    trade.initConnection(emitter(window.game.memo.ui, canny.userPool.emitter, toast), function (sId) {
+        user.id = sId;
+    });
 
-    d.on('remote', function (server) {
-
-        server.init(window.game.memo.serverCallees, function (sId) {
-            user.id = sId;
-        });
-        window.game.memo.askServer = server.gs;
-        window.userPool = server.up;
-
-        // rest should be removed from here:
+    trade.ready(function () {
 
         // register user
         user.name = window.prompt('Enter your name please');
-        window.userPool.join(user.name);
+
+        trade.userPool.join(user.name);
 
         // start a new game
-        window.game.memo.askServer.startNewGame({
+        trade.gs.startNewGame({
             gametype : C.GAME_TYPES.SINGLE,
             gameVariant : C.GAME_VARIANTS.moreAndMore,
             numberOfSymbols : 30
@@ -358,11 +461,9 @@ domready(function () {
             window.game.memo.currentGameId = gameId;
             console.log(window.game);
         });
-
     });
-    d.pipe(stream).pipe(d);
 });
-},{"../../lib/CONSTANT.js":2,"dnode":3,"dom-opts":14,"domready":15,"message-toast":16,"shoe":17}],2:[function(require,module,exports){
+},{"../../lib/CONSTANT.js":5,"./Trade":1,"./c-userPool":2,"./emitter":3,"canny":6,"dom-opts":18,"message-toast":19}],5:[function(require,module,exports){
 
 /*
  Should synced to client
@@ -392,14 +493,139 @@ module.exports = {
     }
 };
 
-},{}],3:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
+/*global */
+/*jslint browser: true*/
+/**
+ * TODO
+ * If canny knows his own URL than canny could load none registered modules afterwords from his own
+ * modules folder (can also build as configurable extension adapted to the body).
+ * E.g.: canny-mod="moduleLoader" canny-var={'cannyPath':URL_FROM_CANNY, 'unknownMods':LOAD_FROM_OTHER_URL}
+ *
+ *
+ * canny-var is deprecated: please use just the module name instead like:
+ * E.g.: canny-mod="mod1 mod2" canny-mod1={'foo':'123456', 'bar':'654321'} canny-mod2="mod2Property"
+ *
+ * ---------------------------------------------------------------------------- eightyfour
+ */
+(function (global) {
+    "use strict";
+    var canny = (function () {
+        var readyQueue = [],
+            readyQueueInit = false,
+            moduleQueue = [], // save modules to call the ready method once
+            callMethQueue = function (queue) {
+                (function reduce() {
+                    var fc = queue.pop();
+                    if (fc) {
+                        fc();
+                        reduce();
+                    } else {
+                        queue = [];
+                    }
+                }());
+            },
+            parseNode = function (node, name, cb) {
+                var that = this, gdModuleChildren = [].slice.call(node.querySelectorAll('[' + name + '-mod]')), prepareReadyQueue = {};
+
+                gdModuleChildren.forEach(function (node) {
+                    var attribute = node.getAttribute(name + '-mod'), attr, viewPart, attributes, cannyVar;
+
+                    attributes = attribute.split(' ');
+
+                    attributes.forEach(function (eachAttr) {
+                        if (that[eachAttr]) {
+                            if (node.getAttribute(name + '-mod')) {
+                                if (node.getAttribute(name + '-' + eachAttr)) {
+                                    cannyVar = node.getAttribute(name + '-' + eachAttr);
+                                } else {
+                                    cannyVar = node.getAttribute(name + '-var');
+                                }
+                                if (cannyVar) {
+                                    attr = cannyVar.split("\'").join('\"');
+                                    if (/:/.test(attr)) {
+                                        // could be a JSON
+                                        try {
+                                            viewPart = JSON.parse(attr);
+                                        } catch (ex) {
+                                            console.error("canny can't parse passed JSON for module: " + eachAttr, node);
+                                        }
+                                    } else {
+                                        viewPart = attr;
+                                    }
+                                }
+                            }
+                            // has module a ready function than save it for calling
+                            if (that[eachAttr].hasOwnProperty('ready')) {
+                                // TODO or call it immediately?
+                                prepareReadyQueue[eachAttr] = that[eachAttr].ready;
+                            }
+                            if (that.hasOwnProperty(eachAttr)) {
+                                that[eachAttr].add(node, viewPart);
+                            }
+                        } else {
+                            console.warn('canny parse: module with name ´' + eachAttr + '´ is not registered');
+                        }
+                    });
+                });
+                // add ready callback to moduleQueue
+                Object.keys(prepareReadyQueue).forEach(function (name) {
+                    moduleQueue.push(prepareReadyQueue[name]);
+                });
+                cb && cb();
+            };
+
+        document.addEventListener('DOMContentLoaded', function cannyDomLoad() {
+            document.removeEventListener('DOMContentLoaded', cannyDomLoad);
+
+            parseNode.apply(canny, [document, 'canny']);
+
+            callMethQueue(moduleQueue);
+            // call registered ready functions
+            readyQueueInit = true;
+            callMethQueue(readyQueue);
+        }, false);
+
+        return {
+            add : function (name, module) {
+                if (!this.hasOwnProperty(name)) {
+                    this[name] = module;
+                } else {
+                    console.error('canny: Try to register module with name ' + name + ' twice');
+                }
+            },
+            ready : function (fc) {
+                if (!readyQueueInit) {
+                    readyQueue.push(fc);
+                } else {
+                    fc();
+                }
+            },
+            cannyParse : function (node, name, cb) {
+                // TODO needs a callback
+                if (typeof name === 'function') {
+                    cb = name;
+                    name = "canny";
+                }
+                parseNode.apply(this || canny, [node, name || 'canny', function () {
+                    callMethQueue(moduleQueue);
+                    cb && cb();
+                }]);
+            }
+        };
+    }());
+    // export as module or bind to global
+    if (typeof module !== 'undefined' && module.hasOwnProperty('exports')) { module.exports = canny; } else {global.canny = canny; }
+}(this));
+
+},{}],7:[function(require,module,exports){
 var dnode = require('./lib/dnode');
 
 module.exports = function (cons, opts) {
     return new dnode(cons, opts);
 };
 
-},{"./lib/dnode":4}],4:[function(require,module,exports){
+},{"./lib/dnode":8}],8:[function(require,module,exports){
 var process=require("__browserify_process");var protocol = require('dnode-protocol');
 var Stream = require('stream');
 var json = typeof JSON === 'object' ? JSON : require('jsonify');
@@ -554,7 +780,7 @@ dnode.prototype.destroy = function () {
     this.end();
 };
 
-},{"__browserify_process":21,"dnode-protocol":5,"jsonify":11,"stream":30}],5:[function(require,module,exports){
+},{"__browserify_process":24,"dnode-protocol":9,"jsonify":15,"stream":33}],9:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var scrubber = require('./lib/scrub');
 var objectKeys = require('./lib/keys');
@@ -681,7 +907,7 @@ Proto.prototype.apply = function (f, args) {
     catch (err) { this.emit('error', err) }
 };
 
-},{"./lib/foreach":6,"./lib/is_enum":7,"./lib/keys":8,"./lib/scrub":9,"events":19}],6:[function(require,module,exports){
+},{"./lib/foreach":10,"./lib/is_enum":11,"./lib/keys":12,"./lib/scrub":13,"events":22}],10:[function(require,module,exports){
 module.exports = function forEach (xs, f) {
     if (xs.forEach) return xs.forEach(f)
     for (var i = 0; i < xs.length; i++) {
@@ -689,7 +915,7 @@ module.exports = function forEach (xs, f) {
     }
 }
 
-},{}],7:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 var objectKeys = require('./keys');
 
 module.exports = function (obj, key) {
@@ -703,14 +929,14 @@ module.exports = function (obj, key) {
     return false;
 };
 
-},{"./keys":8}],8:[function(require,module,exports){
+},{"./keys":12}],12:[function(require,module,exports){
 module.exports = Object.keys || function (obj) {
     var keys = [];
     for (var key in obj) keys.push(key);
     return keys;
 };
 
-},{}],9:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 var traverse = require('traverse');
 var objectKeys = require('./keys');
 var forEach = require('./foreach');
@@ -784,7 +1010,7 @@ Scrubber.prototype.unscrub = function (msg, f) {
     return args;
 };
 
-},{"./foreach":6,"./keys":8,"traverse":10}],10:[function(require,module,exports){
+},{"./foreach":10,"./keys":12,"traverse":14}],14:[function(require,module,exports){
 var traverse = module.exports = function (obj) {
     return new Traverse(obj);
 };
@@ -1021,7 +1247,7 @@ function copy (src) {
             dst = [];
         }
         else if (isDate(src)) {
-            dst = new Date(src);
+            dst = new Date(src.getTime ? src.getTime() : src);
         }
         else if (isRegExp(src)) {
             dst = new RegExp(src);
@@ -1100,11 +1326,11 @@ var hasOwnProperty = Object.hasOwnProperty || function (obj, key) {
     return key in obj;
 };
 
-},{}],11:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 exports.parse = require('./lib/parse');
 exports.stringify = require('./lib/stringify');
 
-},{"./lib/parse":12,"./lib/stringify":13}],12:[function(require,module,exports){
+},{"./lib/parse":16,"./lib/stringify":17}],16:[function(require,module,exports){
 var at, // The index of the current character
     ch, // The current character
     escapee = {
@@ -1379,7 +1605,7 @@ module.exports = function (source, reviver) {
     }({'': result}, '')) : result;
 };
 
-},{}],13:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 var cx = /[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
     escapable = /[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
     gap,
@@ -1535,7 +1761,7 @@ module.exports = function (value, replacer, space) {
     return str('', {'': value});
 };
 
-},{}],14:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 /*global HTMLElement */
 /*jslint browser: true */
 
@@ -1568,11 +1794,17 @@ module.exports =  domOpts;
 // dom operations:
 HTMLElement.prototype.domAddClass = function (addClasses) {
     "use strict";
-    console.log('add class und so');
-    this.setAttribute('class', this.getAttribute('class') + ' ' + addClasses);
+    var attrClass = this.getAttribute('class'),
+        addClassesList = addClasses.split(' '), newClasses = [], i;
+    for (i = 0; i < addClassesList.length; i++) {
+        if (!this.domHasClass(addClassesList[i])) {
+            newClasses.push(addClassesList[i]);
+        }
+    }
+    this.setAttribute('class', attrClass !== null ? attrClass + ' ' + newClasses.join(' ') : newClasses.join(' '));
     return this;
 };
-
+// TODO remove all classes with same name
 HTMLElement.prototype.domRemoveClass = function (removeableClasses) {
     "use strict";
     var removeClasses = (removeableClasses && removeableClasses.split(' ')) || this.getAttribute('class').split(' '),
@@ -1601,7 +1833,6 @@ HTMLElement.prototype.domHasClass = function (className) {
         currentClasses = classes.split(' ');
         for (i = 0; i < currentClasses.length; i++) {
             if (currentClasses[i] === className) {return true; }
-            if (currentClasses[i] === className) {return true; }
         }
     }
     return false;
@@ -1610,6 +1841,15 @@ HTMLElement.prototype.domHasClass = function (className) {
 HTMLElement.prototype.domRemove = function () {
     "use strict";
     this.parentNode.removeChild(this);
+};
+/**
+ * remove all child elements from node
+ */
+HTMLElement.prototype.domEmpty = function () {
+    "use strict";
+    Array.prototype.slice.call(this.children).forEach(function (child) {
+        child.domRemove(this);
+    });
 };
 
 HTMLElement.prototype.domAppendTo = function (elem) {
@@ -1621,63 +1861,28 @@ HTMLElement.prototype.domAppendTo = function (elem) {
     node.appendChild(this);
     return this;
 };
-},{}],15:[function(require,module,exports){
-/*!
-  * domready (c) Dustin Diaz 2012 - License MIT
-  */
-!function (name, definition) {
-  if (typeof module != 'undefined') module.exports = definition()
-  else if (typeof define == 'function' && typeof define.amd == 'object') define(definition)
-  else this[name] = definition()
-}('domready', function (ready) {
 
-  var fns = [], fn, f = false
-    , doc = document
-    , testEl = doc.documentElement
-    , hack = testEl.doScroll
-    , domContentLoaded = 'DOMContentLoaded'
-    , addEventListener = 'addEventListener'
-    , onreadystatechange = 'onreadystatechange'
-    , readyState = 'readyState'
-    , loadedRgx = hack ? /^loaded|^c/ : /^loaded|c/
-    , loaded = loadedRgx.test(doc[readyState])
-
-  function flush(f) {
-    loaded = 1
-    while (f = fns.shift()) f()
-  }
-
-  doc[addEventListener] && doc[addEventListener](domContentLoaded, fn = function () {
-    doc.removeEventListener(domContentLoaded, fn, f)
-    flush()
-  }, f)
-
-
-  hack && doc.attachEvent(onreadystatechange, fn = function () {
-    if (/^c/.test(doc[readyState])) {
-      doc.detachEvent(onreadystatechange, fn)
-      flush()
+HTMLElement.prototype.domAppendChild = function (elem) {
+    "use strict";
+    var node = elem;
+    if (typeof node === 'string') {
+        node = document.getElementById(node);
     }
-  })
+    this.appendChild(node);
+    return this;
+};
 
-  return (ready = hack ?
-    function (fn) {
-      self != top ?
-        loaded ? fn() : fns.push(fn) :
-        function () {
-          try {
-            testEl.doScroll('left')
-          } catch (e) {
-            return setTimeout(function() { ready(fn) }, 50)
-          }
-          fn()
-        }()
-    } :
-    function (fn) {
-      loaded ? fn() : fns.push(fn)
-    })
-})
-},{}],16:[function(require,module,exports){
+HTMLElement.prototype.domChildTags = function (tag) {
+    "use strict";
+    var tags = [];
+    Array.prototype.slice.call(this.children).forEach(function (e) {
+        if (e.tagName.toLowerCase() === tag.toLowerCase()) {
+            tags.push(e);
+        }
+    });
+    return tags;
+};
+},{}],19:[function(require,module,exports){
 /**
  * TODO fade out are flickered if maxLengthOfMessages exceeded
  * @param id
@@ -1781,7 +1986,7 @@ if(typeof module != "undefined"){
     console.log('asign to global scope');
     window.toast = toast;
 }
-},{}],17:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 var Stream = require('stream');
 var sockjs = require('sockjs-client');
 var resolve = require('url').resolve;
@@ -1846,7 +2051,7 @@ module.exports = function (u, cb) {
     return stream;
 };
 
-},{"sockjs-client":18,"stream":30,"url":37}],18:[function(require,module,exports){
+},{"sockjs-client":21,"stream":33,"url":40}],21:[function(require,module,exports){
 /* SockJS client, version 0.3.1.7.ga67f.dirty, http://sockjs.org, MIT License
 
 Copyright (c) 2011-2012 VMware, Inc.
@@ -4171,7 +4376,7 @@ if (typeof module === 'object' && module && module.exports) {
 // [*] End of lib/all.js
 
 
-},{}],19:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -4473,7 +4678,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],20:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -4498,7 +4703,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],21:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -4553,7 +4758,7 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],22:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 var base64 = require('base64-js')
 var ieee754 = require('ieee754')
 
@@ -5548,7 +5753,7 @@ function assert (test, message) {
   if (!test) throw new Error(message || 'Failed assertion')
 }
 
-},{"base64-js":23,"ieee754":24}],23:[function(require,module,exports){
+},{"base64-js":26,"ieee754":27}],26:[function(require,module,exports){
 var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 ;(function (exports) {
@@ -5675,7 +5880,7 @@ var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 }());
 
 
-},{}],24:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 exports.read = function(buffer, offset, isLE, mLen, nBytes) {
   var e, m,
       eLen = nBytes * 8 - mLen - 1,
@@ -5761,7 +5966,7 @@ exports.write = function(buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128;
 };
 
-},{}],25:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};/*! http://mths.be/punycode v1.2.3 by @mathias */
 ;(function(root) {
 
@@ -6271,7 +6476,7 @@ var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? 
 
 }(this));
 
-},{}],26:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -6357,7 +6562,7 @@ var isArray = Array.isArray || function (xs) {
   return Object.prototype.toString.call(xs) === '[object Array]';
 };
 
-},{}],27:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -6444,13 +6649,13 @@ var objectKeys = Object.keys || function (obj) {
   return res;
 };
 
-},{}],28:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 'use strict';
 
 exports.decode = exports.parse = require('./decode');
 exports.encode = exports.stringify = require('./encode');
 
-},{"./decode":26,"./encode":27}],29:[function(require,module,exports){
+},{"./decode":29,"./encode":30}],32:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -6524,7 +6729,7 @@ function onend() {
   });
 }
 
-},{"./readable.js":33,"./writable.js":35,"inherits":20,"process/browser.js":31}],30:[function(require,module,exports){
+},{"./readable.js":36,"./writable.js":38,"inherits":23,"process/browser.js":34}],33:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -6653,9 +6858,9 @@ Stream.prototype.pipe = function(dest, options) {
   return dest;
 };
 
-},{"./duplex.js":29,"./passthrough.js":32,"./readable.js":33,"./transform.js":34,"./writable.js":35,"events":19,"inherits":20}],31:[function(require,module,exports){
-module.exports=require(21)
-},{}],32:[function(require,module,exports){
+},{"./duplex.js":32,"./passthrough.js":35,"./readable.js":36,"./transform.js":37,"./writable.js":38,"events":22,"inherits":23}],34:[function(require,module,exports){
+module.exports=require(24)
+},{}],35:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -6698,7 +6903,7 @@ PassThrough.prototype._transform = function(chunk, encoding, cb) {
   cb(null, chunk);
 };
 
-},{"./transform.js":34,"inherits":20}],33:[function(require,module,exports){
+},{"./transform.js":37,"inherits":23}],36:[function(require,module,exports){
 var process=require("__browserify_process");// Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -7633,7 +7838,7 @@ function indexOf (xs, x) {
   return -1;
 }
 
-},{"./index.js":30,"__browserify_process":21,"buffer":22,"events":19,"inherits":20,"process/browser.js":31,"string_decoder":36}],34:[function(require,module,exports){
+},{"./index.js":33,"__browserify_process":24,"buffer":25,"events":22,"inherits":23,"process/browser.js":34,"string_decoder":39}],37:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -7839,7 +8044,7 @@ function done(stream, er) {
   return stream.push(null);
 }
 
-},{"./duplex.js":29,"inherits":20}],35:[function(require,module,exports){
+},{"./duplex.js":32,"inherits":23}],38:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -8227,7 +8432,7 @@ function endWritable(stream, state, cb) {
   state.ended = true;
 }
 
-},{"./index.js":30,"buffer":22,"inherits":20,"process/browser.js":31}],36:[function(require,module,exports){
+},{"./index.js":33,"buffer":25,"inherits":23,"process/browser.js":34}],39:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -8420,7 +8625,7 @@ function base64DetectIncompleteChar(buffer) {
   return incomplete;
 }
 
-},{"buffer":22}],37:[function(require,module,exports){
+},{"buffer":25}],40:[function(require,module,exports){
 /*jshint strict:true node:true es5:true onevar:true laxcomma:true laxbreak:true eqeqeq:true immed:true latedef:true*/
 (function () {
   "use strict";
@@ -9053,4 +9258,4 @@ function parseHost(host) {
 
 }());
 
-},{"punycode":25,"querystring":28}]},{},[1])
+},{"punycode":28,"querystring":31}]},{},[4])

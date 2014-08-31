@@ -1,71 +1,233 @@
-#memory .open.red{background-color:#ff0000;}
-#memory .open.blue{background-color: #0000ff;}
-#memory .open.green{background-color: green;}
-#memory .open.black{background-color: #000000;}
-#memory .open.yellow{background-color: #ffff00;}
-#memory .open.purple{background-color: #8a2be2;}
-#memory .open.cyan{background-color: #00ffff;}
-#memory .open.slategray{background-color: #708090;}
+body {
+  margin: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  font-family: 'Arial';
+  font-size: 100%;
+  color: #333;
+  overflow: hidden;
+}
+/* TEMPLATE definitions */
+.t-c-main {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  position: absolute;
+  overflow: hidden;
+  z-index: 0;
+}
+.t-slider {
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  -webkit-transition: -webkit-transform cubic-bezier(0, 0.34, 0, 1.06) 0.2s;
+  -moz-transition: -moz-transform cubic-bezier(0, 0.34, 0, 1.06) 0.2s;
+  -o-transition: -o-transform cubic-bezier(0, 0.34, 0, 1.06) 0.2s;
+  transition: transform cubic-bezier(0, 0.34, 0, 1.06) 0.2s;
+  height: 100%;
+}
+/* show the menu */
+.t-slider.open-page-navigation {
+  -webkit-transform: translate(200px, 0);
+  -ms-transform: translate(200px, 0);
+  transform: translate(200px, 0);
+}
+/* required to wrap the content - we need this to be sure that the content has the full width and height of the screen */
+.t-pageWrap {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  position: absolute;
+  z-index: 200;
+  overflow: hidden;
+  width: 100%;
+  /* next is used for content which overlays the main content and the menu (without this
+     the overlay is above the content but behind the main header)*/
+  /* the page - all scrollable content should be inside this element*/
+}
+.t-pageWrap.t-overlay-above-menu {
+  z-index: 300;
+}
+.t-pageWrap .t-page {
+  top: 0;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+}
+/* template content menu - slides in from left content */
+.t-c-menu {
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  position: absolute;
+  height: 100%;
+  width: 200px;
+  margin-left: -200px;
+  overflow: hidden;
+  z-index: 201;
+  /*needs one more than content*/
+}
+.t-c-menu .d-header {
+  position: relative;
+}
+.t-c-menu .d-content {
+  /* height of header navigation */
+  top: 0;
+  -webkit-transition: top .2s;
+  -moz-transition: top .2s;
+  -o-transition: top .2s;
+  transition: top .2s;
+}
+.t-c-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 300;
+}
+.t-c-header .d-page-navigation-button {
+  float: left;
+}
+.t-c-header .d-logo {
+  float: left;
+}
+.t-header {
+  height: 0;
+}
+.t-header-height {
+  height: 0;
+}
+.t-header-padding-top {
+  padding-top: 0;
+}
+/* the next is only needed for the fixed footer */
+.t-contentWrap {
+  position: relative;
+  z-index: 1;
+  top: 0;
+  min-height: 100%;
+  min-height: calc(100% -  0);
+}
+.t-contentWrap .t-content {
+  display: inline-block;
+  width: 100%;
+}
+.t-footer {
+  position: absolute;
+  /* if there are problems on mobile device just switch to absolute */
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: -1;
+}
+.t-centerBox {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+  position: absolute;
+  display: -ms-flexbox;
+  display: -webkit-box;
+  display: -moz-box;
+  display: -webkit-flex;
+  display: -moz-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  -moz-align-items: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  -ms-flex-pack: center;
+  -webkit-justify-content: center;
+  -moz-justify-content: center;
+  -ms-justify-content: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.6);
+}
+.t-centerBox .t-centerBox-content {
+  overflow-y: auto;
+  vertical-align: middle;
+  margin: auto;
+  -webkit-box-flex: 0;
+  -webkit-flex: 0 1 auto;
+  -moz-flex: 0 1 auto;
+  -ms-flex: 0 1 auto;
+  flex: 0 1 auto;
+  position: relative;
+  /* width: 102rem; */
+  max-height: 100%;
+  z-index: 550;
+  background-color: #FFF;
+  opacity: 1;
+  -webkit-overflow-scrolling: touch;
+}
+.t-centerBox .t-centerBox-content .t-centerBox-with-close {
+  position: relative;
+  width: 100%;
+  height: 50px;
+}
+.t-centerBox .t-centerBox-content .t-centerBox-with-close[class*="icf-"]:before,
+.t-centerBox .t-centerBox-content .t-centerBox-with-close[class^="icf-"]:before {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+#memory .open.red {
+  background-color: #ff0000;
+}
+#memory .open.blue {
+  background-color: #0000ff;
+}
+#memory .open.green {
+  background-color: green;
+}
+#memory .open.black {
+  background-color: #000000;
+}
+#memory .open.yellow {
+  background-color: #ffff00;
+}
+#memory .open.purple {
+  background-color: #8a2be2;
+}
+#memory .open.cyan {
+  background-color: #00ffff;
+}
+#memory .open.slategray {
+  background-color: #708090;
+}
+#memory .open.card {
+  background-color: white;
+}
 #memory .card {
-    width: 100px;
-    height: 100px;
-    padding: 10px;
-    border: 4px solid #ffffff;
-    cursor: hand;
-    float: left;
-    background-color: #ffbd7e;
+  width: 100px;
+  height: 100px;
+  padding: 10px;
+  border: 4px solid #ffffff;
+  cursor: hand;
+  float: left;
+  background-color: #ffbd7e;
 }
-#memory .card:hover{
-    border: 4px solid #adff2f;
+#memory .card:hover {
+  border: 4px solid #adff2f;
 }
-#memory .card.empty{
-    border: 4px solid #ffffff;
-    background-color: #fff;
+#memory .card.empty {
+  border: 4px solid #ffffff;
+  background-color: #fff;
 }
-#memory #board {
-    width: 812px;
-    float: left;
-}
-#memory .card.open{
-    background-color: white;
-}
-#memory .card.open.open{background-color: white;}
-/*#memory .card.open.bull{background-image: url(../images/animals/bull.png);}*/
-/*#memory .card.open.deer{background-image: url(../images/animals/deer.png);}*/
-/*#memory .card.open.donkey{background-image: url(../images/animals/donkey.png);}*/
-/*#memory .card.open.elephant_1{background-image: url(../images/animals/elephant_1.png);}*/
-/*#memory .card.open.elephant_2{background-image: url(../images/animals/elephant_2.png);}*/
-/*#memory .card.open.fish_1{background-image: url(../images/animals/fish_1.png);}*/
-/*#memory .card.open.fish_2{background-image: url(../images/animals/fish_2.png);}*/
-/*#memory .card.open.fish_3{background-image: url(../images/animals/fish_3.png);}*/
-/*#memory .card.open.fish_4{background-image: url(../images/animals/fish_4.png);}*/
-/*#memory .card.open.gnu{background-image: url(../images/animals/gnu.png);}*/
-/*#memory .card.open.goat{background-image: url(../images/animals/goat.png);}*/
-/*#memory .card.open.hippo{background-image: url(../images/animals/hippo.png);}*/
-/*#memory .card.open.kangaroo{background-image: url(../images/animals/kangaroo.png);}*/
-/*#memory .card.open.monkey{background-image: url(../images/animals/monkey.png);}*/
-/*#memory .card.open.ostrich{background-image: url(../images/animals/ostrich.png);}*/
-/*#memory .card.open.pig{background-image: url(../images/animals/pig.png);}*/
-/*#memory .card.open.pinguin{background-image: url(../images/animals/pinguin.png);}*/
-/*#memory .card.open.ray{background-image: url(../images/animals/ray.png);}*/
-/*#memory .card.open.rhino_1{background-image: url(../images/animals/rhino_1.png);}*/
-/*#memory .card.open.rhino_2{background-image: url(../images/animals/rhino_2.png);}*/
-/*#memory .card.open.shark_1{background-image: url(../images/animals/shark_1.png);}*/
-/*#memory .card.open.shark_2{background-image: url(../images/animals/shark_2.png);}*/
-
-#memory #userPool{}
-#board_pool{}
-
-#configurationPanel{
-
-}
-#gameStatsPanel{
-
-}
-#gameStatsPanel .data{
-    display: inline;
-    padding-left: 10px;
-}
-#boardMessage{
-    height: 20px;
+#board {
+  width: 812px;
+  float: left;
 }

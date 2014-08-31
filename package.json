@@ -6,13 +6,14 @@
     },
     "name": "memory-game",
     "description": "Memory card game",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "main": "lib/server.js",
     "dependencies": {
         "socket.io": "0.9.16",
         "express": "3.4.0",
         "dnode" : "1.0.5",
-        "domready" : "0.2.12",
-        "shoe" : "0.0.15"
+        "shoe" : "0.0.15",
+        "canny" : "git://github.com/eightyfour/canny.git",
+        "dom-opts" : "git://github.com/eightyfour/dom-opts.git"
     }
 }

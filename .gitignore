@@ -4,3 +4,5 @@ shoe
 socket.io
 express
 .bin
+
+node_modules

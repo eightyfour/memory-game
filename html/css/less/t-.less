@@ -1,0 +1,201 @@
+body{
+  // TODO find out why we need the 1px margin. (so far as I remember that was a problem with a key board)
+  //    margin: 0 0 1px 0;
+  margin: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  font-family: 'Arial';
+  font-size: 100%;
+  color:#333;
+  overflow: hidden;
+}
+
+/* TEMPLATE definitions */
+.t-c-main{
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  position: absolute;
+  overflow: hidden;
+  z-index: 0;
+}
+.t-slider{
+  -webkit-transform: translate3d(0,0,0);
+  transform: translate3d(0,0,0);
+  -webkit-transition: -webkit-transform cubic-bezier(0,0.34,0,1.06) .2s;
+  -moz-transition: -moz-transform cubic-bezier(0,0.34,0,1.06) .2s;
+  -o-transition: -o-transform cubic-bezier(0,0.34,0,1.06) .2s;
+  transition: transform cubic-bezier(0,0.34,0,1.06) .2s;
+  height: 100%;
+}
+/* show the menu */
+.t-slider.open-page-navigation{
+  -webkit-transform: translate(@t-left-content-width,0);
+  -ms-transform: translate(@t-left-content-width,0);
+  transform: translate(@t-left-content-width,0);
+}
+
+/* required to wrap the content - we need this to be sure that the content has the full width and height of the screen */
+.t-pageWrap {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  position: absolute;
+  z-index: 200;
+  overflow: hidden;
+  width: 100%;
+  /* next is used for content which overlays the main content and the menu (without this
+     the overlay is above the content but behind the main header)*/
+  &.t-overlay-above-menu {
+    z-index: 300;
+  }
+  /* the page - all scrollable content should be inside this element*/
+  .t-page{
+    top: 0;
+    -webkit-transform: translate3d(0,0,0);
+    transform: translate3d(0,0,0);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+/* template content menu - slides in from left content */
+.t-c-menu{
+  -webkit-transform: translate3d(0,0,0);
+  transform: translate3d(0,0,0);
+  position: absolute;
+  height: 100%;
+  width: @t-left-content-width;
+  margin-left: -@t-left-content-width;
+  overflow: hidden;
+  z-index: 201;/*needs one more than content*/
+
+  .d-header{
+    position: relative;
+  }
+  .d-content {
+    /* height of header navigation */
+    top: @t-header-height;
+    -webkit-transition: top .2s;
+    -moz-transition: top .2s;
+    -o-transition: top .2s;
+    transition: top .2s;
+  }
+}
+.t-c-header{
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  //    overflow: hidden;
+  z-index: 300;
+  .d-page-navigation-button{
+    float:left;
+  }
+  .d-logo{
+    //        top:0;
+    //        left:0;
+    //        position: absolute;
+    float:left;
+  }
+}
+.t-header {
+  height: @t-header-height;
+}
+.t-header-height{
+  height: @t-header-height;
+}
+.t-header-padding-top {
+  padding-top: @t-header-height;
+}
+/* the next is only needed for the fixed footer */
+.t-contentWrap {
+  position: relative;
+  z-index: 1;  // otherwise the footer is not click able
+  top: @t-header-height;
+  min-height: 100%;
+  min-height: calc(~"100% - " @t-header-height);
+  .t-content {
+    display: inline-block;
+    width: 100%;
+  }
+}
+.t-footer{
+  //    position: fixed;/* if there are problems on mobile device just switch to absolute */
+  position: absolute;/* if there are problems on mobile device just switch to absolute */
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  z-index: -1;
+}
+// box to center content in the middle of the screen
+.t-centerBox {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  -webkit-transform: translate3d(0,0,0);
+  transform: translate3d(0,0,0);
+  position: absolute;
+  display: -ms-flexbox;
+  display: -webkit-box;
+  display: -moz-box;
+  display: -webkit-flex;
+  display: -moz-flex;
+  display: flex;
+  -webkit-box-align: center;
+  -webkit-align-items: center;
+  -moz-align-items: center;
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  -ms-flex-pack: center;
+  -webkit-justify-content: center;
+  -moz-justify-content: center;
+  -ms-justify-content: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.6);
+  //    z-index: 540;
+
+  .t-centerBox-content {
+    overflow-y: auto;
+    vertical-align: middle;
+    margin: auto;
+    -webkit-box-flex: 0;
+    -webkit-flex: 0 1 auto;
+    -moz-flex: 0 1 auto;
+    -ms-flex: 0 1 auto;
+    flex: 0 1 auto;
+    position: relative;
+    /* width: 102rem; */
+    max-height: 100%;
+    //        overflow: auto; //this is because some elments might fly over the box e.g. mole
+    z-index: 550;
+    background-color: #FFF;
+    opacity: 1;
+    //        overflow-x: hidden; //this is because some elments might fly over the box e.g. mole
+    -webkit-overflow-scrolling: touch;
+
+    .t-centerBox-with-close {
+      position: relative;
+      width: 100%;
+      height: 50px;
+
+      &[class*="icf-"]:before,
+      &[class^="icf-"]:before{
+        position: absolute;
+        top: 10px;
+        right: 10px;
+      }
+    }
+  }
+}
