@@ -1,55 +1,56 @@
 
-var emitter = function (ui, userPool, toast) {
+var toast = require('message-toast'),
+    emitter = function (lobby, ui, rinkStats, userPool) {
 
     return {
-        addUser : function (user) {
+        addUser: function (user) {
             userPool.addNewUser(user);
         },
-        removeUser : function (user) {
+        removeUser: function (user) {
             userPool.removeUser(user);
         },
-        showToast : function () {
+        showToast: function () {
             //  console.log.apply(console,[].slice.call(arguments));
             toast.showMessage.apply(null, [].slice.call(arguments));
         },
-        printDebug : function () {
+        printDebug: function () {
             console.log.apply(console, [].slice.call(arguments));
             //  toast.showMessage.apply(null,[].slice.call(arguments));
         },
-        updateGameStats : function (gameStats) {
+        updateGameStats: function (gameStats) {
             if (gameStats.hasOwnProperty('doubleSelected')) {
-                ui.updateGameStats.doubleSelected(gameStats.doubleSelected);
+                rinkStats.doubleSelected(gameStats.doubleSelected);
             }
             if (gameStats.hasOwnProperty('matches')) {
-                ui.updateGameStats.matches(gameStats.matches);
+                rinkStats.matches(gameStats.matches);
             }
         },
-        gameEnds : function (gameConf, gameState, gameStats) {
+        gameEnds: function (gameConf, gameState, gameStats) {
             console.log('GAME STATE IS: ' + gameState);
         },
         /**
-         * handle list of current games
+         * handle lobby events - TODO rename gameOverview
          */
-        gameOverview : function (key, value) {
+        gameOverview: function (key, value) {
             console.log('gameOverview', key, value);
-            ui[key](value);
+            lobby[key](value);
         },
-        showMatchedCard : function (gameConf, firstCard, secondCard) {
+        showMatchedCard: function (gameConf, firstCard, secondCard) {
             ui.cards.match(gameConf, firstCard, secondCard);
         },
-        showCard : function (gameConf, card) {
+        showCard: function (gameConf, card) {
             ui.cards.show(gameConf, card);
         },
-        hideCards : function (gameConf, cards) {
+        hideCards: function (gameConf, cards) {
             ui.cards.hide(gameConf, cards);
         },
-        removeCard : function (gameConf, card) {
+        removeCard: function (gameConf, card) {
             ui.cards.remove(gameConf, card);
         },
-        clearBoard : function () {
+        clearBoard: function () {
             ui.board.clear();
         },
-        generateBoard : function (gameConf, numberOfcards) {
+        generateBoard: function (gameConf, numberOfcards) {
             ui.board.generateNew(gameConf, numberOfcards);
         }
     }

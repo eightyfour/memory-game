@@ -31,7 +31,7 @@
              <div class="t-page">
 
 
-                 <div id="boardMessage"></div>
+                 <div id="boardMessage" canny-mod="rinkMessages"></div>
 
                  <!-- board for the cards to play -->
                  <div id="board" canny-mod="rink"></div>
@@ -55,11 +55,11 @@
                          <option value="2" selected="true">Multiplayer</option>
                      </select>
 
-                     <button href="javascript:void(0);" onclick="window.game.memo.ui.createNewGame()">Create new Game</button>
+                     <button href="javascript:void(0);" canny-mod="panel" canny-panel="createNewGame">Create new Game</button>
 
                  </div>
 
-                 <div id="gameStatsPanel" class="moreAndMore">
+                 <div id="gameStatsPanel" class="moreAndMore" canny-mod="rinkStats">
                      <div class="doubleSelected">Double selected:<div class="data">0</div></div>
                      <div class="matches">Pairs found:<div class="data">0</div></div>
                      <!-- display the state of the game -->

@@ -41,9 +41,7 @@ var shoe = require('shoe'),
         };
 
         this.initConnection = function (clientConnection, cb) {
-            this.ready(function () {
-                server.init(clientConnection, cb);
-            });
+            server.init(clientConnection, cb);
         };
     }
 
