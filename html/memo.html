@@ -26,53 +26,71 @@
 </script>
 
 <div id="memory" class="t-c-main">
+    <div class="t-slider">
+        <div class="t-pageWrap">
+             <div class="t-page">
 
-    <div id="boardMessage"></div>
 
-    <!-- board for the cards to play -->
-    <div id="board"></div>
+                 <div id="boardMessage"></div>
 
-    <div id="userPool" canny-mod="userPool"></div>
+                 <!-- board for the cards to play -->
+                 <div id="board" canny-mod="rink"></div>
 
-    <div id="board_pool">
 
+                 <div id="configurationPanel">
+
+                     <label for="numberOfSymbols">Select number of symbols:</label>
+                     <select id="numberOfSymbols" name="number of symbols" title="Number of symbols">
+                         <option value="4">4</option>
+                         <option value="8">8</option>
+                         <option value="12">12</option>
+                         <option value="20">20</option>
+                     </select>
+
+
+                     <label for="gameVariant">Gamevariant</label>
+                     <select id="gameVariant" name="gameVariant" title="Select a game variant">
+                         <option value="0">Normal</option>
+                         <option value="1">More and more</option>
+                         <option value="2" selected="true">Multiplayer</option>
+                     </select>
+
+                     <button href="javascript:void(0);" onclick="window.game.memo.ui.createNewGame()">Create new Game</button>
+
+                 </div>
+
+                 <div id="gameStatsPanel" class="moreAndMore">
+                     <div class="doubleSelected">Double selected:<div class="data">0</div></div>
+                     <div class="matches">Pairs found:<div class="data">0</div></div>
+                     <!-- display the state of the game -->
+                 </div>
+
+                 <div id="multiplayer">
+                     <ul id="actualGames">
+
+                     </ul>
+                 </div>
+
+             </div>
+        </div>
     </div>
 
-    <div id="configurationPanel">
 
-        <label for="numberOfSymbols">Select number of symbols:</label>
-        <select id="numberOfSymbols" name="number of symbols" title="Number of symbols">
-            <option value="4">4</option>
-            <option value="8">8</option>
-            <option value="12">12</option>
-            <option value="20">20</option>
-        </select>
+    <div id="userPool" class="t-right-menu" canny-mod="layout" canny-layout="rightNav">
+        <div class="t-pageWrap">
+            <div class="t-page" canny-mod="layout" canny-layout="toggleRightNav">
+                <div canny-mod="userPool">
 
+                </div>
+            </div>
+        </div>
 
-        <label for="gameVariant">Gamevariant</label>
-        <select id="gameVariant" name="gameVariant" title="Select a game variant">
-            <option value="0">Normal</option>
-            <option value="1">More and more</option>
-            <option value="2" selected="true">Multiplayer</option>
-        </select>
-
-        <button href="javascript:void(0);" onclick="window.game.memo.ui.createNewGame()">Create new Game</button>
-
-    </div>
-
-    <div id="gameStatsPanel" class="moreAndMore">
-        <div class="doubleSelected">Double selected:<div class="data">0</div></div>
-        <div class="matches">Pairs found:<div class="data">0</div></div>
-        <!-- display the state of the game -->
-    </div>
-
-    <div id="multiplayer">
-        <ul id="actualGames">
-
-        </ul>
     </div>
 
 </div>
+
+
+
 
 </body>
 </html>

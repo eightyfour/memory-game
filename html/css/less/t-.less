@@ -18,9 +18,9 @@ body{
   top: 0;
   bottom: 0;
   left: 0;
-  right: 0;
+  right: @t-right-content-width-show;
   position: absolute;
-  overflow: hidden;
+//  overflow: hidden;
   z-index: 0;
 }
 .t-slider{
@@ -66,6 +66,29 @@ body{
     overflow-x: hidden;
     overflow-y: scroll;
     -webkit-overflow-scrolling: touch;
+  }
+}
+.t-right-menu{
+  -webkit-transform: translate3d(0,0,0);
+  transform: translate3d(0,0,0);
+  position: absolute;
+  height: 100%;
+  width: @t-right-content-width;
+  overflow: hidden;
+  z-index: 201;/*needs one more than content*/
+  top: 0;
+  right: -@t-right-content-width;
+  -webkit-transition: right 0.5s ease-out;
+  -moz-transition: right 0.5s ease-out;
+  -ms-transition: right 0.5s ease-out;
+  -o-transition: right 0.5s ease-out;
+  transition: right 0.5s ease-out;
+
+  background-color: #2e2e2e;
+  color:white;
+  &.c-show,
+  &:hover {
+    right: -@t-right-content-width-show;
   }
 }
 /* template content menu - slides in from left content */

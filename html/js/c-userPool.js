@@ -14,9 +14,19 @@ var userPool = function () {
         },
         emitter : {
             addNewUser : function (user) {
-                var node = domOpts.createElement('div',
-                        select.idPostfix + user.uId).domAppendTo(rootNode || select.root);
-                node.innerText = user.name;
+                var node = document.getElementById(select.idPostfix + user.uId),
+                    span;
+
+                if (!node) {
+                    node = domOpts.createElement('div',
+                        select.idPostfix + user.uId,
+                        'c-user').domAppendTo(rootNode);
+                    span = domOpts.createElement('span').domAppendTo(node);
+                } else {
+                    span = node.querySelector('span');
+                }
+
+                span.innerText = user.name;
                 console.log('addNewUser', user);
             },
             removeUser : function (user) {

@@ -17,6 +17,7 @@ var domOpts = require('dom-opts'),
     };
 
 canny.add('userPool', require('./c-userPool')());
+canny.add('layout', require('./c-layout')());
 
 
 // publish required modules to global
