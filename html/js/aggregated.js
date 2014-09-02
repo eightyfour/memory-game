@@ -10,22 +10,15 @@ var shoe = require('shoe'),
         var readyQueue = [],
             server,
             stream = shoe(mount),
-            d = dnode(),
-            that = this;
+            d = dnode();
 
-        this.userPool = {};
-        this.gs = {};
-
-        d.on('remote', function (remote) {
-            server = remote;
+        d.on('remote', function (connection) {
+            server = connection;
             console.log('setup remote');
-
-            that.gs = server.gs;
-            that.userPool = server.up;
 
             // call ready queue - and clear
             readyQueue.forEach(function (cb) {
-                cb();
+                cb(server);
             });
             readyQueue = null;
 
@@ -37,17 +30,17 @@ var shoe = require('shoe'),
             if (readyQueue !== null) {
                 readyQueue.push(cb);
             } else {
-                cb();
+                cb(server);
             }
         };
 
         this.initConnection = function (clientConnection, cb) {
             server.init(clientConnection, cb);
         };
-    }
+    };
 
 module.exports = Trade;
-},{"dnode":14,"shoe":27}],2:[function(require,module,exports){
+},{"dnode":17,"shoe":30}],2:[function(require,module,exports){
 /**
  * Created by han on 31.08.14.
  */
@@ -159,7 +152,7 @@ var user = require('./user'),
     }
 };
 module.exports = lobby;
-},{"./user":11,"message-toast":26}],4:[function(require,module,exports){
+},{"./user":13,"message-toast":29}],4:[function(require,module,exports){
 /**
  * Created by han on 31.08.14.
  */
@@ -201,7 +194,7 @@ var C = require('../../lib/CONSTANT.js'),
         }
     };
 module.exports = panel;
-},{"../../lib/CONSTANT.js":12}],5:[function(require,module,exports){
+},{"../../lib/CONSTANT.js":14}],5:[function(require,module,exports){
 /**
  * Created by han on 31.08.14.
  */
@@ -430,28 +423,48 @@ var rinkMessages = function () {
 module.exports = rinkMessages;
 },{}],7:[function(require,module,exports){
 /**
- * Created by han on 31.08.14.
+ * Update the stats for the rink
  */
-
 var rinkStats = function () {
 
     var rootNode,
-        gameStatsPanel = {
-            doubleSelected : 'doubleSelected',
-            matches : 'matches'
+        whiskerData = {
+            update : function () {},
+            // part of whisker api
+            whiskerUpdate : function (fc) {
+                whiskerData.update = fc;
+            },
+            // message definitions
+            doubleSelected : 0,
+            matches : 0
         };
     return {
+        /**
+         * Common reset method to reset the module state
+         */
+        reset : function () {
+            whiskerData.doubleSelected = '0';
+            whiskerData.matches = '0';
+            whiskerData.update(whiskerData);
+        },
+        /**
+         * Update the texts with whisker
+         * @returns {{update: update, whiskerUpdate: whiskerUpdate, doubleSelected: number, matches: number}}
+         */
+        data : function () {
+            return whiskerData;
+        },
         add : function (node, attr) {
             rootNode = node;
         },
         emitter : {
             doubleSelected : function (msg) {
-                var data = rootNode.getElementsByClassName(gameStatsPanel.doubleSelected)[0];
-                data.getElementsByClassName('data')[0].innerText = msg;
+                whiskerData.doubleSelected = msg;
+                whiskerData.update(whiskerData);
             },
             matches : function (msg) {
-                var data = rootNode.getElementsByClassName(gameStatsPanel.matches)[0];
-                data.getElementsByClassName('data')[0].innerText =  msg;
+                whiskerData.matches = msg;
+                whiskerData.update(whiskerData);
             }
         }
     }
@@ -504,64 +517,37 @@ module.exports = userPool;
 },{}],9:[function(require,module,exports){
 
 var toast = require('message-toast'),
-    emitter = function (lobby, ui, rinkStats, userPool) {
-
-    return {
-        addUser: function (user) {
-            userPool.addNewUser(user);
-        },
-        removeUser: function (user) {
-            userPool.removeUser(user);
-        },
-        showToast: function () {
-            //  console.log.apply(console,[].slice.call(arguments));
-            toast.showMessage.apply(null, [].slice.call(arguments));
-        },
-        printDebug: function () {
-            console.log.apply(console, [].slice.call(arguments));
-            //  toast.showMessage.apply(null,[].slice.call(arguments));
-        },
-        updateGameStats: function (gameStats) {
-            if (gameStats.hasOwnProperty('doubleSelected')) {
-                rinkStats.doubleSelected(gameStats.doubleSelected);
+    reset = require('./reset'),
+    emitter = (function () {
+        var gs, up;
+        return {
+            setup : function (trade) {
+                gs = trade.gs;
+                up = trade.up;
+            },
+            gs : {
+                startNewGame : function (gameConfig, cb) {
+                    reset.trigger.resetRink();
+                    gs.startNewGame(gameConfig, cb);
+                },
+                joinGame : function (creatorId) {
+                    reset.trigger.resetRink();
+                    gs.joinGame(creatorId);
+                },
+                takeCard : function (position) {
+                    gs.takeCard(position);
+                }
+            },
+            up : {
+                join : function (userName) {
+                    up.join(userName);
+                }
             }
-            if (gameStats.hasOwnProperty('matches')) {
-                rinkStats.matches(gameStats.matches);
-            }
-        },
-        gameEnds: function (gameConf, gameState, gameStats) {
-            console.log('GAME STATE IS: ' + gameState);
-        },
-        /**
-         * handle lobby events - TODO rename gameOverview
-         */
-        gameOverview: function (key, value) {
-            console.log('gameOverview', key, value);
-            lobby[key](value);
-        },
-        showMatchedCard: function (gameConf, firstCard, secondCard) {
-            ui.cards.match(gameConf, firstCard, secondCard);
-        },
-        showCard: function (gameConf, card) {
-            ui.cards.show(gameConf, card);
-        },
-        hideCards: function (gameConf, cards) {
-            ui.cards.hide(gameConf, cards);
-        },
-        removeCard: function (gameConf, card) {
-            ui.cards.remove(gameConf, card);
-        },
-        clearBoard: function () {
-            ui.board.clear();
-        },
-        generateBoard: function (gameConf, numberOfcards) {
-            ui.board.generateNew(gameConf, numberOfcards);
         }
-    }
-}
+    }());
 
 module.exports = emitter;
-},{"message-toast":26}],10:[function(require,module,exports){
+},{"./reset":12,"message-toast":29}],10:[function(require,module,exports){
 /*global */
 /*jslint browser: true */
 /**
@@ -575,8 +561,11 @@ var domOpts = require('dom-opts'),
     Trade = require('./Trade'),
     trade = new Trade('/memory'),
     emitter = require('./emitter'),
+    receiver = require('./receiver'),
+    reset = require('./reset'),
     user = require('./user');
 
+canny.add('whisker', require('canny/mod/whisker'));
 canny.add('userPool', require('./c-userPool')());
 canny.add('layout', require('./c-layout')());
 canny.add('lobby', require('./c-lobby')());
@@ -585,6 +574,9 @@ canny.add('rinkMessages', require('./c-rinkMessages')());
 canny.add('rinkStats', require('./c-rinkStats')());
 canny.add('rink', require('./c-rink')());
 
+
+// register all modules which need to reset in a specific case
+reset.register.resetRink(canny.rinkStats, canny.rink);
 
 // publish required modules to global
 window.canny = canny;
@@ -596,10 +588,13 @@ window.game = window.game || {};
 canny.ready(function () {
     "use strict";
 
-    trade.ready(function () {
+    trade.ready(function (con) {
 
-        // pass the client connections to the server and get a user session ID back
-        trade.initConnection(emitter(
+        // setup emitter with connection obj
+        emitter.setup(con);
+
+        // pass the client connections to the server and as present you will get a user session ID back
+        trade.initConnection(receiver(
                 canny.lobby.emitter,
                 canny.rink.emitter, canny.rinkStats.emitter,
                 canny.userPool.emitter),
@@ -607,39 +602,141 @@ canny.ready(function () {
                 user.setUId(sId);
         });
 
+        // the following lines could be refactored - the emitter is a global
+        // single instance and each module could call it by own
+
         // register click handler when card is clicked
         canny.rink.onCardClick(function (position) {
-            trade.gs.takeCard(position);
+            emitter.gs.takeCard(position);
         });
 
         canny.panel.onCreateGame(function (gameConfig) {
-            trade.gs.startNewGame(gameConfig, function (gameId) {
+            emitter.gs.startNewGame(gameConfig, function (gameId) {
                 // TODO - why I need the game ID ?
-                window.game.memo.currentGameId = gameId;
+                console.log(gameId);
             });
         });
 
         canny.lobby.events.onJoinGame(function (creatorId) {
-            trade.gs.joinGame(creatorId);
+            emitter.gs.joinGame(creatorId);
         });
 
         // register user
         user.setName(window.prompt('Enter your name please'));
 
-        trade.userPool.join(user.getName());
+        emitter.up.join(user.getName());
 
         // start a new game
-        trade.gs.startNewGame({
+        emitter.gs.startNewGame({
             gametype : C.GAME_TYPES.SINGLE,
             gameVariant : C.GAME_VARIANTS.moreAndMore,
             numberOfSymbols : 30
         }, function (gameId) {
-            window.game.memo.currentGameId = gameId;
-            console.log(window.game);
+            console.log(gameId);
         });
     });
 });
-},{"../../lib/CONSTANT.js":12,"./Trade":1,"./c-layout":2,"./c-lobby":3,"./c-panel":4,"./c-rink":5,"./c-rinkMessages":6,"./c-rinkStats":7,"./c-userPool":8,"./emitter":9,"./user":11,"canny":13,"dom-opts":25,"message-toast":26}],11:[function(require,module,exports){
+},{"../../lib/CONSTANT.js":14,"./Trade":1,"./c-layout":2,"./c-lobby":3,"./c-panel":4,"./c-rink":5,"./c-rinkMessages":6,"./c-rinkStats":7,"./c-userPool":8,"./emitter":9,"./receiver":11,"./reset":12,"./user":13,"canny":15,"canny/mod/whisker":16,"dom-opts":28,"message-toast":29}],11:[function(require,module,exports){
+
+var toast = require('message-toast'),
+    receiver = function (lobby, ui, rinkStats, userPool) {
+
+        return {
+            addUser: function (user) {
+                userPool.addNewUser(user);
+            },
+            removeUser: function (user) {
+                userPool.removeUser(user);
+            },
+            showToast: function () {
+                //  console.log.apply(console,[].slice.call(arguments));
+                toast.showMessage.apply(null, [].slice.call(arguments));
+            },
+            printDebug: function () {
+                console.log.apply(console, [].slice.call(arguments));
+                //  toast.showMessage.apply(null,[].slice.call(arguments));
+            },
+            updateGameStats: function (gameStats) {
+                if (gameStats.hasOwnProperty('doubleSelected')) {
+                    rinkStats.doubleSelected(gameStats.doubleSelected);
+                }
+                if (gameStats.hasOwnProperty('matches')) {
+                    rinkStats.matches(gameStats.matches);
+                }
+            },
+            gameEnds: function (gameConf, gameState, gameStats) {
+                console.log('GAME STATE IS: ' + gameState);
+            },
+            /**
+             * handle lobby events - TODO rename gameOverview
+             */
+            gameOverview: function (key, value) {
+                console.log('gameOverview', key, value);
+                lobby[key](value);
+            },
+            showMatchedCard: function (gameConf, firstCard, secondCard) {
+                ui.cards.match(gameConf, firstCard, secondCard);
+            },
+            showCard: function (gameConf, card) {
+                ui.cards.show(gameConf, card);
+            },
+            hideCards: function (gameConf, cards) {
+                ui.cards.hide(gameConf, cards);
+            },
+            removeCard: function (gameConf, card) {
+                ui.cards.remove(gameConf, card);
+            },
+            clearBoard: function () {
+                ui.board.clear();
+            },
+            generateBoard: function (gameConf, numberOfcards) {
+                ui.board.generateNew(gameConf, numberOfcards);
+            }
+        }
+    }
+
+module.exports = receiver;
+},{"message-toast":29}],12:[function(require,module,exports){
+/**
+ * Created by han on 01.09.14.
+ */
+
+/**
+ * register modules which needs to reset in a specific state
+ */
+var reset = (function () {
+    var resetRinkQueue = [];
+
+    function callQueue(queue) {
+        for (var i = 0; i < queue.length; i++) {
+            queue[i]();
+        }
+    }
+    return {
+        register : {
+            /**
+             * pass many object as arguments which implements the reset method
+             */
+            resetRink : function (params) {
+                var args = [].slice.call(arguments);
+                args.forEach(function (obj) {
+                    if (obj.hasOwnProperty('reset')) {
+                        console.log('ADD RESET FOR OBJ:', obj);
+                        resetRinkQueue.push(obj.reset);
+                    }
+                });
+            }
+        },
+        trigger : {
+            resetRink : function () {
+                callQueue(resetRinkQueue);
+            }
+        }
+    }
+}());
+
+module.exports = reset;
+},{}],13:[function(require,module,exports){
 /**
  * Created by han on 31.08.14.
  */
@@ -665,7 +762,7 @@ var user = (function () {
 }());
 
 module.exports = user;
-},{}],12:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 
 /*
  Should synced to client
@@ -695,7 +792,7 @@ module.exports = {
     }
 };
 
-},{}],13:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 /*global */
 /*jslint browser: true*/
 /**
@@ -820,14 +917,181 @@ module.exports = {
     if (typeof module !== 'undefined' && module.hasOwnProperty('exports')) { module.exports = canny; } else {global.canny = canny; }
 }(this));
 
-},{}],14:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
+/*global canny */
+/*jslint browser: true*/
+
+/**
+ * E.g. {{whisker}}:
+ *  <div canny-mod="whisker" canny-var="{'message':'dynamic text'}">
+ *     <p>DATA: {{message}})</p>
+ *  </div>
+ *
+ *  If the object implements a function named 'whiskerUpdate' whisker will push a callback to it.
+ *  This callback can be called with the data object to update the data there bind to the whiskers.
+ *
+ */
+(function () {
+    "use strict";
+
+    var openChar = '{',
+        endChar  = '}',
+        ESCAPE_RE = /[-.*+?^${}()|[\]\/\\]/g,
+        whisker = (function () {
+            var BINDING_RE = getRegex(),
+                whiskerUpdateMap = {},
+                /**
+                 *  Parse a piece of text, return an array of tokens
+                 */
+                parse = function (text) {
+                    if (!BINDING_RE.test(text)) {return null; }
+                    var m, i, token, match, tokens = []
+                    /* jshint boss: true */
+                    while (m = text.match(BINDING_RE)) {
+                        i = m.index;
+                        if (i > 0) {tokens.push(text.slice(0, i)); }
+                        token = { key: m[1].trim() };
+                        match = m[0];
+                        token.html =
+                                match.charAt(2) === openChar &&
+                                match.charAt(match.length - 3) === endChar;
+                        tokens.push(token);
+                        text = text.slice(i + m[0].length);
+                    }
+                    if (text.length) {tokens.push(text); }
+                    return tokens;
+                },
+                /**
+                 *
+                 * @param node
+                 * @param dataObj
+                 */
+                compileTextNode  = function (node, dataObj, attr) {
+                    var tokens = parse(node.nodeValue), obj = dataObj, el, token, i, l, span;
+
+                    if (!tokens || obj === undefined) {return; }
+
+                    for (i = 0, l = tokens.length; i < l; i++) {
+                        token = tokens[i];
+
+                        if (token.key && obj.hasOwnProperty(token.key)) { // a binding
+                            span = document.createElement('span');
+                            el = document.createTextNode(obj[token.key]);
+                            span.appendChild(el);
+                            if (whiskerUpdateMap.hasOwnProperty(attr)) {
+                                if (!whiskerUpdateMap[attr].keyMap[token.key]) {
+                                    whiskerUpdateMap[attr].keyMap[token.key] = [];
+                                }
+                                whiskerUpdateMap[attr].keyMap[token.key].push(span);
+                            }
+                            node.parentNode.insertBefore(span, node);
+                        } else { // a plain string
+                            el = document.createTextNode(token);
+                            node.parentNode.insertBefore(el, node);
+                        }
+                        // insert node
+
+                    }
+                    node.parentNode.removeChild(node);
+                },
+                compileElement = function (node, dataObj, attr) {
+                    // recursively compile childNodes
+                    if (node.hasChildNodes()) {
+                        [].slice.call(node.childNodes).forEach(function (child) {
+                            compile(child, dataObj, attr);
+                        });
+                    }
+                },
+                /**
+                 *  Compile a DOM node (recursive)
+                 */
+                compile = function (node, dataObj, attr) {
+                    var nodeType = node.nodeType;
+                    if (nodeType === 1 && node.tagName !== 'SCRIPT') { // a normal node
+                        compileElement(node, dataObj, attr);
+                    } else if (nodeType === 3) {
+                        compileTextNode(node, dataObj, attr);
+                    }
+                },
+                getGlobalCall = function (value) {
+                    var split = value.split('.'),
+                        end = window,
+                        rec = function (cur) {
+                            if (end[cur]) {
+                                end = end[cur];
+                                rec(split.shift());
+                            }
+                        };
+                    rec(split.shift());
+                    return end;
+                };
+
+            return {
+                getTextNodes : function () {
+                    return whiskerUpdateMap;
+                },
+                add : function (node, attr) {
+                    var obj = attr, dataObj;
+                    if (typeof attr === 'string') {
+                        dataObj = getGlobalCall(attr);
+                        if (typeof dataObj === 'function') {
+                            obj = dataObj();
+                        } else {
+                            obj = dataObj;
+                        }
+                        if (obj.hasOwnProperty('whiskerUpdate')) {
+                            if (!whiskerUpdateMap[attr]) {
+                                whiskerUpdateMap[attr] = {
+                                    obj : obj,
+                                    keyMap : {}
+                                };
+                            }
+                            whiskerUpdateMap[attr].obj.whiskerUpdate(function (data) {
+                                Object.keys(whiskerUpdateMap[attr].keyMap).forEach(function (whiskerName) {
+                                    if (data[whiskerName] !== undefined || data[whiskerName] !== null) {
+                                        whiskerUpdateMap[attr].keyMap[whiskerName].forEach(function (node) {
+                                            node.innerHTML = data[whiskerName];
+                                        });
+                                    }
+                                });
+                            });
+                        }
+                    }
+                    compile(node, obj, attr);
+                },
+                ready : function () {
+                    console.log('module parse ready');
+                }
+            };
+        }());
+
+    function escapeRegex(str) {
+        return str.replace(ESCAPE_RE, '\\$&');
+    }
+
+    function getRegex() {
+        var open = escapeRegex(openChar),
+            end  = escapeRegex(endChar);
+        return new RegExp(open + open + open + '?(.+?)' + end + '?' + end + end);
+    }
+
+    // export as module or bind to global
+    if (typeof module !== 'undefined' && module.hasOwnProperty('exports')) {
+        module.exports = whisker;
+    } else {
+        canny.add('whisker', whisker);
+    }
+
+}());
+
+},{}],17:[function(require,module,exports){
 var dnode = require('./lib/dnode');
 
 module.exports = function (cons, opts) {
     return new dnode(cons, opts);
 };
 
-},{"./lib/dnode":15}],15:[function(require,module,exports){
+},{"./lib/dnode":18}],18:[function(require,module,exports){
 var process=require("__browserify_process");var protocol = require('dnode-protocol');
 var Stream = require('stream');
 var json = typeof JSON === 'object' ? JSON : require('jsonify');
@@ -982,7 +1246,7 @@ dnode.prototype.destroy = function () {
     this.end();
 };
 
-},{"__browserify_process":31,"dnode-protocol":16,"jsonify":22,"stream":40}],16:[function(require,module,exports){
+},{"__browserify_process":34,"dnode-protocol":19,"jsonify":25,"stream":43}],19:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var scrubber = require('./lib/scrub');
 var objectKeys = require('./lib/keys');
@@ -1109,7 +1373,7 @@ Proto.prototype.apply = function (f, args) {
     catch (err) { this.emit('error', err) }
 };
 
-},{"./lib/foreach":17,"./lib/is_enum":18,"./lib/keys":19,"./lib/scrub":20,"events":29}],17:[function(require,module,exports){
+},{"./lib/foreach":20,"./lib/is_enum":21,"./lib/keys":22,"./lib/scrub":23,"events":32}],20:[function(require,module,exports){
 module.exports = function forEach (xs, f) {
     if (xs.forEach) return xs.forEach(f)
     for (var i = 0; i < xs.length; i++) {
@@ -1117,7 +1381,7 @@ module.exports = function forEach (xs, f) {
     }
 }
 
-},{}],18:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 var objectKeys = require('./keys');
 
 module.exports = function (obj, key) {
@@ -1131,14 +1395,14 @@ module.exports = function (obj, key) {
     return false;
 };
 
-},{"./keys":19}],19:[function(require,module,exports){
+},{"./keys":22}],22:[function(require,module,exports){
 module.exports = Object.keys || function (obj) {
     var keys = [];
     for (var key in obj) keys.push(key);
     return keys;
 };
 
-},{}],20:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 var traverse = require('traverse');
 var objectKeys = require('./keys');
 var forEach = require('./foreach');
@@ -1212,7 +1476,7 @@ Scrubber.prototype.unscrub = function (msg, f) {
     return args;
 };
 
-},{"./foreach":17,"./keys":19,"traverse":21}],21:[function(require,module,exports){
+},{"./foreach":20,"./keys":22,"traverse":24}],24:[function(require,module,exports){
 var traverse = module.exports = function (obj) {
     return new Traverse(obj);
 };
@@ -1528,11 +1792,11 @@ var hasOwnProperty = Object.hasOwnProperty || function (obj, key) {
     return key in obj;
 };
 
-},{}],22:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 exports.parse = require('./lib/parse');
 exports.stringify = require('./lib/stringify');
 
-},{"./lib/parse":23,"./lib/stringify":24}],23:[function(require,module,exports){
+},{"./lib/parse":26,"./lib/stringify":27}],26:[function(require,module,exports){
 var at, // The index of the current character
     ch, // The current character
     escapee = {
@@ -1807,7 +2071,7 @@ module.exports = function (source, reviver) {
     }({'': result}, '')) : result;
 };
 
-},{}],24:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 var cx = /[\u0000\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
     escapable = /[\\\"\x00-\x1f\x7f-\x9f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g,
     gap,
@@ -1963,7 +2227,7 @@ module.exports = function (value, replacer, space) {
     return str('', {'': value});
 };
 
-},{}],25:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 /*global HTMLElement */
 /*jslint browser: true */
 
@@ -2084,7 +2348,7 @@ HTMLElement.prototype.domChildTags = function (tag) {
     });
     return tags;
 };
-},{}],26:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 /**
  * TODO fade out are flickered if maxLengthOfMessages exceeded
  * @param id
@@ -2188,7 +2452,7 @@ if(typeof module != "undefined"){
     console.log('asign to global scope');
     window.toast = toast;
 }
-},{}],27:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 var Stream = require('stream');
 var sockjs = require('sockjs-client');
 var resolve = require('url').resolve;
@@ -2253,7 +2517,7 @@ module.exports = function (u, cb) {
     return stream;
 };
 
-},{"sockjs-client":28,"stream":40,"url":47}],28:[function(require,module,exports){
+},{"sockjs-client":31,"stream":43,"url":50}],31:[function(require,module,exports){
 /* SockJS client, version 0.3.1.7.ga67f.dirty, http://sockjs.org, MIT License
 
 Copyright (c) 2011-2012 VMware, Inc.
@@ -4578,7 +4842,7 @@ if (typeof module === 'object' && module && module.exports) {
 // [*] End of lib/all.js
 
 
-},{}],29:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -4880,7 +5144,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],30:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -4905,7 +5169,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],31:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -4960,7 +5224,7 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],32:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 var base64 = require('base64-js')
 var ieee754 = require('ieee754')
 
@@ -5955,7 +6219,7 @@ function assert (test, message) {
   if (!test) throw new Error(message || 'Failed assertion')
 }
 
-},{"base64-js":33,"ieee754":34}],33:[function(require,module,exports){
+},{"base64-js":36,"ieee754":37}],36:[function(require,module,exports){
 var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
 ;(function (exports) {
@@ -6082,7 +6346,7 @@ var lookup = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 }());
 
 
-},{}],34:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 exports.read = function(buffer, offset, isLE, mLen, nBytes) {
   var e, m,
       eLen = nBytes * 8 - mLen - 1,
@@ -6168,7 +6432,7 @@ exports.write = function(buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128;
 };
 
-},{}],35:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};/*! http://mths.be/punycode v1.2.3 by @mathias */
 ;(function(root) {
 
@@ -6678,7 +6942,7 @@ var global=typeof self !== "undefined" ? self : typeof window !== "undefined" ? 
 
 }(this));
 
-},{}],36:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -6764,7 +7028,7 @@ var isArray = Array.isArray || function (xs) {
   return Object.prototype.toString.call(xs) === '[object Array]';
 };
 
-},{}],37:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -6851,13 +7115,13 @@ var objectKeys = Object.keys || function (obj) {
   return res;
 };
 
-},{}],38:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 'use strict';
 
 exports.decode = exports.parse = require('./decode');
 exports.encode = exports.stringify = require('./encode');
 
-},{"./decode":36,"./encode":37}],39:[function(require,module,exports){
+},{"./decode":39,"./encode":40}],42:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -6931,7 +7195,7 @@ function onend() {
   });
 }
 
-},{"./readable.js":43,"./writable.js":45,"inherits":30,"process/browser.js":41}],40:[function(require,module,exports){
+},{"./readable.js":46,"./writable.js":48,"inherits":33,"process/browser.js":44}],43:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -7060,9 +7324,9 @@ Stream.prototype.pipe = function(dest, options) {
   return dest;
 };
 
-},{"./duplex.js":39,"./passthrough.js":42,"./readable.js":43,"./transform.js":44,"./writable.js":45,"events":29,"inherits":30}],41:[function(require,module,exports){
-module.exports=require(31)
-},{}],42:[function(require,module,exports){
+},{"./duplex.js":42,"./passthrough.js":45,"./readable.js":46,"./transform.js":47,"./writable.js":48,"events":32,"inherits":33}],44:[function(require,module,exports){
+module.exports=require(34)
+},{}],45:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -7105,7 +7369,7 @@ PassThrough.prototype._transform = function(chunk, encoding, cb) {
   cb(null, chunk);
 };
 
-},{"./transform.js":44,"inherits":30}],43:[function(require,module,exports){
+},{"./transform.js":47,"inherits":33}],46:[function(require,module,exports){
 var process=require("__browserify_process");// Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -8040,7 +8304,7 @@ function indexOf (xs, x) {
   return -1;
 }
 
-},{"./index.js":40,"__browserify_process":31,"buffer":32,"events":29,"inherits":30,"process/browser.js":41,"string_decoder":46}],44:[function(require,module,exports){
+},{"./index.js":43,"__browserify_process":34,"buffer":35,"events":32,"inherits":33,"process/browser.js":44,"string_decoder":49}],47:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -8246,7 +8510,7 @@ function done(stream, er) {
   return stream.push(null);
 }
 
-},{"./duplex.js":39,"inherits":30}],45:[function(require,module,exports){
+},{"./duplex.js":42,"inherits":33}],48:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -8634,7 +8898,7 @@ function endWritable(stream, state, cb) {
   state.ended = true;
 }
 
-},{"./index.js":40,"buffer":32,"inherits":30,"process/browser.js":41}],46:[function(require,module,exports){
+},{"./index.js":43,"buffer":35,"inherits":33,"process/browser.js":44}],49:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -8827,7 +9091,7 @@ function base64DetectIncompleteChar(buffer) {
   return incomplete;
 }
 
-},{"buffer":32}],47:[function(require,module,exports){
+},{"buffer":35}],50:[function(require,module,exports){
 /*jshint strict:true node:true es5:true onevar:true laxcomma:true laxbreak:true eqeqeq:true immed:true latedef:true*/
 (function () {
   "use strict";
@@ -9460,4 +9724,4 @@ function parseHost(host) {
 
 }());
 
-},{"punycode":35,"querystring":38}]},{},[10])
+},{"punycode":38,"querystring":41}]},{},[10])

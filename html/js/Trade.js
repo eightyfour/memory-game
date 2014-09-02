@@ -9,22 +9,15 @@ var shoe = require('shoe'),
         var readyQueue = [],
             server,
             stream = shoe(mount),
-            d = dnode(),
-            that = this;
+            d = dnode();
 
-        this.userPool = {};
-        this.gs = {};
-
-        d.on('remote', function (remote) {
-            server = remote;
+        d.on('remote', function (connection) {
+            server = connection;
             console.log('setup remote');
-
-            that.gs = server.gs;
-            that.userPool = server.up;
 
             // call ready queue - and clear
             readyQueue.forEach(function (cb) {
-                cb();
+                cb(server);
             });
             readyQueue = null;
 
@@ -36,13 +29,13 @@ var shoe = require('shoe'),
             if (readyQueue !== null) {
                 readyQueue.push(cb);
             } else {
-                cb();
+                cb(server);
             }
         };
 
         this.initConnection = function (clientConnection, cb) {
             server.init(clientConnection, cb);
         };
-    }
+    };
 
 module.exports = Trade;

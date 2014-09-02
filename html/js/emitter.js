@@ -1,59 +1,32 @@
 
 var toast = require('message-toast'),
-    emitter = function (lobby, ui, rinkStats, userPool) {
-
-    return {
-        addUser: function (user) {
-            userPool.addNewUser(user);
-        },
-        removeUser: function (user) {
-            userPool.removeUser(user);
-        },
-        showToast: function () {
-            //  console.log.apply(console,[].slice.call(arguments));
-            toast.showMessage.apply(null, [].slice.call(arguments));
-        },
-        printDebug: function () {
-            console.log.apply(console, [].slice.call(arguments));
-            //  toast.showMessage.apply(null,[].slice.call(arguments));
-        },
-        updateGameStats: function (gameStats) {
-            if (gameStats.hasOwnProperty('doubleSelected')) {
-                rinkStats.doubleSelected(gameStats.doubleSelected);
+    reset = require('./reset'),
+    emitter = (function () {
+        var gs, up;
+        return {
+            setup : function (trade) {
+                gs = trade.gs;
+                up = trade.up;
+            },
+            gs : {
+                startNewGame : function (gameConfig, cb) {
+                    reset.trigger.resetRink();
+                    gs.startNewGame(gameConfig, cb);
+                },
+                joinGame : function (creatorId) {
+                    reset.trigger.resetRink();
+                    gs.joinGame(creatorId);
+                },
+                takeCard : function (position) {
+                    gs.takeCard(position);
+                }
+            },
+            up : {
+                join : function (userName) {
+                    up.join(userName);
+                }
             }
-            if (gameStats.hasOwnProperty('matches')) {
-                rinkStats.matches(gameStats.matches);
-            }
-        },
-        gameEnds: function (gameConf, gameState, gameStats) {
-            console.log('GAME STATE IS: ' + gameState);
-        },
-        /**
-         * handle lobby events - TODO rename gameOverview
-         */
-        gameOverview: function (key, value) {
-            console.log('gameOverview', key, value);
-            lobby[key](value);
-        },
-        showMatchedCard: function (gameConf, firstCard, secondCard) {
-            ui.cards.match(gameConf, firstCard, secondCard);
-        },
-        showCard: function (gameConf, card) {
-            ui.cards.show(gameConf, card);
-        },
-        hideCards: function (gameConf, cards) {
-            ui.cards.hide(gameConf, cards);
-        },
-        removeCard: function (gameConf, card) {
-            ui.cards.remove(gameConf, card);
-        },
-        clearBoard: function () {
-            ui.board.clear();
-        },
-        generateBoard: function (gameConf, numberOfcards) {
-            ui.board.generateNew(gameConf, numberOfcards);
         }
-    }
-}
+    }());
 
 module.exports = emitter;

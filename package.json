@@ -6,7 +6,7 @@
     },
     "name": "memory-game",
     "description": "Memory card game",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "main": "lib/server.js",
     "dependencies": {
         "socket.io": "0.9.16",
