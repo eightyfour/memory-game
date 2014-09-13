@@ -2,6 +2,7 @@
 <html>
 <head>
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Memory Game - made by eightyfour games ;-)</title>
 
     <script type="text/javascript" src="/js/aggregated.js"></script>
@@ -27,6 +28,7 @@
 
 <div id="memory" class="t-c-main">
     <div class="t-slider">
+
         <div class="t-pageWrap">
              <div class="t-page">
 
@@ -34,7 +36,7 @@
                  <div id="boardMessage" canny-mod="rinkMessages"></div>
 
                  <!-- board for the cards to play -->
-                 <div id="board" canny-mod="rink"></div>
+                 <div class="c-rink" canny-mod="rink"></div>
 
 
                  <div id="configurationPanel">
@@ -75,6 +77,27 @@
         </div>
     </div>
 
+    <div class="t-centerBox" canny-mod="layout" canny-layout="{'overlay':'login'}">
+        <div class="t-centerBox-content">
+            <div class="c-userPanel" canny-mod="userPanel">
+                <input canny-mod="userPanel" canny-userPanel="inputName" class="ui-input name" placeholder="Enter your name" type="text"/>
+                <div canny-mod="userPanel" canny-userPanel="colorChooser" class="colorChooser"></div>
+                <button canny-mod="userPanel" canny-userPanel="inputButton"  class="ui-btn button white">play</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="t-centerBox" canny-mod="layout" canny-layout="{'overlay':'test1','show':'false','goupId':'test'}">
+        <div class="t-centerBox-content">
+            <h1>test1 view</h1>
+        </div>
+    </div>
+
+    <div class="t-centerBox" canny-mod="layout" canny-layout="{'overlay':'test1','show':'false','goupId':'test'}">
+        <div class="t-centerBox-content">
+            <h1>test2 view</h1>
+        </div>
+    </div>
 
     <div id="userPool" class="t-right-menu" canny-mod="layout" canny-layout="rightNav">
         <div class="t-pageWrap">

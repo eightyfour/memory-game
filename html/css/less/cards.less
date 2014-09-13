@@ -1,42 +1,15 @@
-
-.open {
-  &.red {
-    background-color: #ff0000;
-  }
-
-  &.blue {
-    background-color: #0000ff;
-  }
-
-  &.green {
-    background-color: green;
-  }
-
-  &.black {
-    background-color: #000000;
-  }
-
-  &.yellow {
-    background-color: #ffff00;
-  }
-
-  &.purple {
-    background-color: #8a2be2;
-  }
-
-  &.cyan {
-    background-color: #00ffff;
-  }
-
-  &.slategray {
-    background-color: #708090;
-  }
-
-  &.card {
-    background-color: white;
-  }
-}
-
+// States
+//
+// All cards are listed here
+//
+// Markup:
+// <div class="card {$modifiers}"></div>
+//
+// :hover - show card open
+// empty - show card open
+// empty.open - empty open state
+//
+// Styleguide 7.1
 .card {
   width: 100px;
   height: 100px;
@@ -44,12 +17,60 @@
   border: 4px solid #ffffff;
   cursor: hand;
   float: left;
-  background-color: #ffbd7e;
+  background-color: white;
+  background-image: linear-gradient(90deg, rgba(200,0,0,.5) 50%, transparent 50%),
+  linear-gradient(rgba(200,0,0,.5) 50%, transparent 50%);
+  background-size:50px 50px;
+
+//  background-color: hsl(2, 57%, 40%);
+//  background-image: repeating-linear-gradient(transparent, transparent 50px, rgba(0,0,0,.4) 50px, rgba(0,0,0,.4) 53px, transparent 53px, transparent 63px, rgba(0,0,0,.4) 63px, rgba(0,0,0,.4) 66px, transparent 66px, transparent 116px, rgba(0,0,0,.5) 116px, rgba(0,0,0,.5) 166px, rgba(255,255,255,.2) 166px, rgba(255,255,255,.2) 169px, rgba(0,0,0,.5) 169px, rgba(0,0,0,.5) 179px, rgba(255,255,255,.2) 179px, rgba(255,255,255,.2) 182px, rgba(0,0,0,.5) 182px, rgba(0,0,0,.5) 232px, transparent 232px),
+//  repeating-linear-gradient(270deg, transparent, transparent 50px, rgba(0,0,0,.4) 50px, rgba(0,0,0,.4) 53px, transparent 53px, transparent 63px, rgba(0,0,0,.4) 63px, rgba(0,0,0,.4) 66px, transparent 66px, transparent 116px, rgba(0,0,0,.5) 116px, rgba(0,0,0,.5) 166px, rgba(255,255,255,.2) 166px, rgba(255,255,255,.2) 169px, rgba(0,0,0,.5) 169px, rgba(0,0,0,.5) 179px, rgba(255,255,255,.2) 179px, rgba(255,255,255,.2) 182px, rgba(0,0,0,.5) 182px, rgba(0,0,0,.5) 232px, transparent 232px),
+//  repeating-linear-gradient(125deg, transparent, transparent 2px, rgba(0,0,0,.2) 2px, rgba(0,0,0,.2) 3px, transparent 3px, transparent 5px, rgba(0,0,0,.2) 5px);
+  &.open {
+    background: none;
+  }
   &:hover {
     border: 4px solid #adff2f;
   }
   &.empty {
+    background: none;
     border: 4px solid #ffffff;
     background-color: #fff;
   }
+  &.empty.open{
+    border: 2px solid #ffaa00;
+    margin:2px;
+  }
 }
+
+// Animal deck
+//
+// All cards are listed here
+//
+// Markup:
+// <div class="card {$modifiers} open"><img src="public/images/animals/{$modifiers}.png" alt="{$modifiers}" width="100" height="100"></div>
+//
+// bull - bull
+// deer - deer
+// donkey - donkey
+// elephant_1 - elephant_1
+// elephant_2 - elephant_2
+// fish_1 - fish_1
+// fish_2 - fish_2
+// fish_3 - fish_3
+// fish_4 - fish_4
+// gnu - gnu
+// goat - goat
+// hippo - hippo
+// kangaroo - kangaroo
+// monkey - monkey
+// ostrich - ostrich
+// pig - pig
+// pinguin - pinguin
+// ray - ray
+// rhino_1 - rhino_1
+// rhino_2 - rhino_2
+// shark_1 - shark_1
+// shark_2 - shark_2
+//
+// Styleguide 7.1

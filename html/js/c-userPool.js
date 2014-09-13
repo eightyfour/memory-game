@@ -3,7 +3,6 @@
  */
 var userPool = function () {
     var select = {
-        root : 'userPool',
         idPostfix : 'u'
     },
     rootNode;

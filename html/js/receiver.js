@@ -1,6 +1,6 @@
 
 var toast = require('message-toast'),
-    receiver = function (lobby, ui, rinkStats, userPool) {
+    receiver = function (lobby, rink, rinkStats, userPool) {
 
         return {
             addUser: function (user) {
@@ -36,22 +36,33 @@ var toast = require('message-toast'),
                 lobby[key](value);
             },
             showMatchedCard: function (gameConf, firstCard, secondCard) {
-                ui.cards.match(gameConf, firstCard, secondCard);
+                rink.cards.match(gameConf, firstCard, secondCard);
             },
             showCard: function (gameConf, card) {
-                ui.cards.show(gameConf, card);
+                rink.cards.show(gameConf, card);
+            },
+            // TODO implement all show all cards
+            showAllCards: function (gameConf, cards) {
+                (function show(i) {
+                    if (i < cards.length) {
+                        setTimeout(function () {
+                            rink.cards.show(gameConf, cards[i]);
+                            show(i + 1);
+                        }, 300);
+                    }
+                }(0));
             },
             hideCards: function (gameConf, cards) {
-                ui.cards.hide(gameConf, cards);
+                rink.cards.hide(gameConf, cards);
             },
             removeCard: function (gameConf, card) {
-                ui.cards.remove(gameConf, card);
+                rink.cards.remove(gameConf, card);
             },
             clearBoard: function () {
-                ui.board.clear();
+                rink.board.clear();
             },
             generateBoard: function (gameConf, numberOfcards) {
-                ui.board.generateNew(gameConf, numberOfcards);
+                rink.board.generateNew(gameConf, numberOfcards);
             }
         }
     }

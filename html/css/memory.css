@@ -7,7 +7,7 @@ body {
   bottom: 0;
   font-family: 'Arial';
   font-size: 100%;
-  color: #333;
+  color: #565656;
   overflow: hidden;
 }
 /* TEMPLATE definitions */
@@ -15,8 +15,10 @@ body {
   top: 0;
   bottom: 0;
   left: 0;
-  right: 50px;
+  right: 0;
+  padding-right: 50px;
   position: absolute;
+  overflow: hidden;
   z-index: 0;
 }
 .t-slider {
@@ -73,7 +75,7 @@ body {
   z-index: 201;
   /*needs one more than content*/
   top: 0;
-  right: -200px;
+  right: -150px;
   -webkit-transition: right 0.5s ease-out;
   -moz-transition: right 0.5s ease-out;
   -ms-transition: right 0.5s ease-out;
@@ -84,7 +86,7 @@ body {
 }
 .t-right-menu.c-show,
 .t-right-menu:hover {
-  right: -50px;
+  right: 0px;
 }
 /* template content menu - slides in from left content */
 .t-c-menu {
@@ -191,7 +193,6 @@ body {
   /* width: 102rem; */
   max-height: 100%;
   z-index: 550;
-  background-color: #FFF;
   opacity: 1;
   -webkit-overflow-scrolling: touch;
 }
@@ -206,56 +207,157 @@ body {
   top: 10px;
   right: 10px;
 }
-#memory .open.red {
-  background-color: #ff0000;
+.ui-btn {
+  font-size: 1em;
+  min-height: 40px;
+  padding: 0.5em 20px;
+  color: #FFF;
+  text-align: center;
+  cursor: pointer;
+  box-sizing: border-box;
+  border: none;
+  outline: none;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  -webkit-background-clip: padding-box;
+  -moz-background-clip: padding-box;
+  background-clip: padding-box;
+  background-color: #778899;
+  -webkit-box-shadow: 0px -2px 0px 0px #586574 inset;
+  -moz-box-shadow: 0px -2px 0px 0px #586574 inset;
+  box-shadow: 0px -2px 0px 0px #586574 inset;
 }
-#memory .open.blue {
-  background-color: #0000ff;
+.ui-btn:active {
+  background: #586574;
+  -webkit-box-shadow: 0px 2px 0px 0px #3f4853 inset;
+  -moz-box-shadow: 0px 2px 0px 0px #3f4853 inset;
+  box-shadow: 0px 2px 0px 0px #3f4853 inset;
 }
-#memory .open.green {
-  background-color: green;
+.ui-btn.white {
+  color: #3f4853;
+  background-color: #f7f7f7;
+  -webkit-box-shadow: 0px -2px 0px 0px #d1d1d1 inset;
+  -moz-box-shadow: 0px -2px 0px 0px #d1d1d1 inset;
+  box-shadow: 0px -2px 0px 0px #d1d1d1 inset;
 }
-#memory .open.black {
-  background-color: #000000;
+.ui-btn.white:active {
+  background: #d1d1d1;
+  -webkit-box-shadow: 0px 2px 0px 0px #9e9e9e inset;
+  -moz-box-shadow: 0px 2px 0px 0px #9e9e9e inset;
+  box-shadow: 0px 2px 0px 0px #9e9e9e inset;
 }
-#memory .open.yellow {
-  background-color: #ffff00;
+.ui-input {
+  background-color: #f7f7f7;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  -webkit-background-clip: padding-box;
+  -moz-background-clip: padding;
+  background-clip: padding-box;
+  -webkit-box-shadow: inset 0px 0px 5px 0px #c8c8c8;
+  -moz-box-shadow: inset 0px 0px 5px 0px #c8c8c8;
+  box-shadow: inset 0px 0px 5px 0px #c8c8c8;
+  box-sizing: border-box;
+  display: block;
+  font-size: 1em;
+  line-height: 1.4em;
+  line-height: 32px;
+  width: 100%;
+  padding-left: 16px;
 }
-#memory .open.purple {
-  background-color: #8a2be2;
+.c-rink {
+  width: 812px;
+  float: left;
 }
-#memory .open.cyan {
-  background-color: #00ffff;
+.c-rinkPanel {
+  width: 10em;
+  height: 10em;
+  background: #00ff00;
 }
-#memory .open.slategray {
+.c-userPanel {
+  padding: 20px;
+}
+.c-userPanel > * {
+  margin: 20px 0;
+  -webkit-box-shadow: 0 0 4px 0px #ffffff;
+  -moz-box-shadow: 0 0 4px 0px #ffffff;
+  box-shadow: 0 0 4px 0px #ffffff;
+}
+.c-userPanel .colorChooser {
+  display: table;
+  margin: auto;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+}
+.c-userPanel .colorChooser .selected {
+  -webkit-box-shadow: 0 0 2px 2px rgba(0, 0, 0, 0.3);
+  -moz-box-shadow: 0 0 2px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 2px 2px rgba(0, 0, 0, 0.3);
+  -webkit-animation-name: rotate;
+  -webkit-animation-duration: 4000ms;
+  -webkit-animation-iteration-count: infinite;
+  -webkit-animation-timing-function: linear;
+  -moz-animation-name: rotate;
+  -moz-animation-duration: 4000ms;
+  -moz-animation-iteration-count: infinite;
+  -moz-animation-timing-function: linear;
+  animation-name: rotate;
+  animation-duration: 4000ms;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+.c-userPanel .colorChooser > * {
+  border-radius: 3px;
+  -webkit-box-shadow: 0 0 1px 1px rgba(0, 0, 0, 0.3);
+  -moz-box-shadow: 0 0 1px 1px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 1px 1px rgba(0, 0, 0, 0.3);
+  float: left;
+  margin: 10px;
+  width: 30px;
+  height: 30px;
+}
+.c-userPanel .button {
+  width: 100%;
+}
+@-moz-keyframes rotate {
+  from {
+    -moz-transform: rotate(0deg);
+  }
+  to {
+    -moz-transform: rotate(361deg);
+  }
+}
+@-webkit-keyframes rotate {
+  from {
+    -webkit-transform: rotate(0deg);
+  }
+  to {
+    -webkit-transform: rotate(361deg);
+  }
+}
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(361deg);
+  }
+}
+.c-own-turn {
+  background-color: #adff2f;
+}
+.c-opponent-turn {
   background-color: #708090;
 }
-#memory .open.card {
-  background-color: white;
-}
-#memory .card {
-  width: 100px;
-  height: 100px;
-  padding: 10px;
-  border: 4px solid #ffffff;
-  cursor: hand;
-  float: left;
-  background-color: #ffbd7e;
-}
-#memory .card:hover {
-  border: 4px solid #adff2f;
-}
-#memory .card.empty {
-  border: 4px solid #ffffff;
-  background-color: #fff;
-}
-#memory .c-user {
+.c-user {
   background-color: #19469D;
   padding: 5px 0 5px 60px;
   position: relative;
   height: 50px;
 }
-#memory .c-user:before {
+.c-user:before {
   position: absolute;
   left: 5px;
   top: 10px;
@@ -267,12 +369,34 @@ body {
   height: 40px;
   background-color: #adff2f;
 }
-#memory .c-user span {
+.c-user span {
   display: table-cell;
   vertical-align: middle;
   height: 40px;
 }
-#board {
-  width: 812px;
+.card {
+  width: 100px;
+  height: 100px;
+  padding: 10px;
+  border: 4px solid #ffffff;
+  cursor: hand;
   float: left;
+  background-color: white;
+  background-image: linear-gradient(90deg, rgba(200, 0, 0, 0.5) 50%, transparent 50%), linear-gradient(rgba(200, 0, 0, 0.5) 50%, transparent 50%);
+  background-size: 50px 50px;
+}
+.card.open {
+  background: none;
+}
+.card:hover {
+  border: 4px solid #adff2f;
+}
+.card.empty {
+  background: none;
+  border: 4px solid #ffffff;
+  background-color: #fff;
+}
+.card.empty.open {
+  border: 2px solid #ffaa00;
+  margin: 2px;
 }

@@ -4,8 +4,9 @@
 
 var user = (function () {
     var id,
-        name = '';
-    console.log('CREATE USER INSTANCE');
+        name = '',
+        color;
+
     return {
         setUId : function (uId) {
             id = uId;
@@ -18,6 +19,12 @@ var user = (function () {
         },
         getName : function () {
             return name;
+        },
+        setColor : function (colorCode) {
+            color = colorCode;
+        },
+        getColor : function () {
+            return color;
         }
     }
 }());

@@ -17,6 +17,7 @@ var domOpts = require('dom-opts'),
 
 canny.add('whisker', require('canny/mod/whisker'));
 canny.add('userPool', require('./c-userPool')());
+canny.add('userPanel', require('./c-userPanel')());
 canny.add('layout', require('./c-layout')());
 canny.add('lobby', require('./c-lobby')());
 canny.add('panel', require('./c-panel')());
@@ -35,9 +36,11 @@ window.userPool = {};
 // create game namespace
 window.game = window.game || {};
 
+// wait that all modules are parsed
 canny.ready(function () {
     "use strict";
 
+    // wait that connection is ready to use
     trade.ready(function (con) {
 
         // setup emitter with connection obj
@@ -55,7 +58,7 @@ canny.ready(function () {
         // the following lines could be refactored - the emitter is a global
         // single instance and each module could call it by own
 
-        // register click handler when card is clicked
+        // register click handlers:
         canny.rink.onCardClick(function (position) {
             emitter.gs.takeCard(position);
         });
@@ -71,18 +74,24 @@ canny.ready(function () {
             emitter.gs.joinGame(creatorId);
         });
 
-        // register user
-        user.setName(window.prompt('Enter your name please'));
+        canny.userPanel.onAddNewUser(function (name, color) {
 
-        emitter.up.join(user.getName());
+            canny.layout.control.overlay('login').close();
 
-        // start a new game
-        emitter.gs.startNewGame({
-            gametype : C.GAME_TYPES.SINGLE,
-            gameVariant : C.GAME_VARIANTS.moreAndMore,
-            numberOfSymbols : 30
-        }, function (gameId) {
-            console.log(gameId);
+            user.setName(name);
+            user.setColor(color);
+
+            emitter.up.join(name);
+
+            // start a new game
+            emitter.gs.startNewGame({
+                gametype : C.GAME_TYPES.SINGLE,
+                gameVariant : C.GAME_VARIANTS.moreAndMore,
+                numberOfSymbols : 30
+            }, function (gameId) {
+                console.log(gameId);
+            });
         });
+
     });
 });

@@ -29,7 +29,8 @@ var rink = function () {
                 state : {
                     open : 'open',
                     hidden : 'hidden',
-                    empty : 'empty'
+                    empty : 'empty',
+                    matched : 'matched'
                 }
             }
         },
@@ -81,7 +82,12 @@ var rink = function () {
         emitter = {
             cards : {
                 show : function (gameConf, card) {
+                    // TODO is no state passed from server than the card was already matched - add a state for matched cards (is this the curios empty state?)
                     var cardNode = document.getElementById(class_postfix + card.position);
+//                    if (!card.hasOwnProperty('state')) {
+//                        cardNode.domAddClass(selectors.game.state.matched);
+//                    }
+                    cardNode.innerHTML = '';
                     cardNode.domRemoveClass(selectors.game.state.hidden).domAddClass(card.type + ' ' + selectors.game.state.open);
                     cardNode.appendChild(getImage(card.type));
                 },
@@ -96,6 +102,7 @@ var rink = function () {
                     }, 2e3);
                 },
                 hide : function (gameConf, cards) {
+                    console.log('CALL HIDE', cards);
                     cards.forEach(function (card) {
                         var cardNode = document.getElementById(class_postfix + card.position),
                             callMeHasBeenCalled = false,
