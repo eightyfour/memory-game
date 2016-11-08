@@ -4,6 +4,7 @@
 var rinkStats = function () {
 
     var rootNode,
+        whiskerUpdate,
         whiskerData = {
             update : function () {},
             // part of whisker api
@@ -27,8 +28,9 @@ var rinkStats = function () {
          * Update the texts with whisker
          * @returns {{update: update, whiskerUpdate: whiskerUpdate, doubleSelected: number, matches: number}}
          */
-        data : function () {
-            return whiskerData;
+        data : function (fc) {
+            whiskerUpdate = fc;
+            whiskerUpdate('data', {});
         },
         add : function (node, attr) {
             rootNode = node;
@@ -40,7 +42,7 @@ var rinkStats = function () {
             },
             matches : function (msg) {
                 whiskerData.matches = msg;
-                whiskerData.update(whiskerData);
+                whiskerUpdate('data', whiskerData);
             }
         }
     }

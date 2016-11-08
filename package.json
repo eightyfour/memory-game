@@ -1,19 +1,46 @@
 {
-    "auth": "eightyfour",
-    "email": "eightyfour@thinkuseful.de",
-    "engines": {
-        "node": ">= v0.10.0"
+  "auth": "eightyfour",
+  "email": "eightyfour@thinkuseful.de",
+  "engines": {
+    "node": ">= v0.10.0"
+  },
+  "watch": {
+    "browserify": {
+      "patterns": ["html/js"],
+      "extensions": "js"
     },
-    "name": "memory-game",
-    "description": "Memory card game",
-    "version": "0.1.2",
-    "main": "lib/server.js",
-    "dependencies": {
-        "socket.io": "0.9.16",
-        "express": "3.4.0",
-        "dnode" : "1.0.5",
-        "shoe" : "0.0.15",
-        "canny" : "git://github.com/eightyfour/canny.git",
-        "dom-opts" : "git://github.com/eightyfour/dom-opts.git"
+    "less": {
+      "patterns": ["html/css"],
+      "extensions": "less"
     }
+  },
+  "name": "memory-game",
+  "description": "Memory card game",
+  "version": "0.1.2",
+  "main": "lib/server.js",
+  "scripts": {
+    "prebuild" : "mkdir -p dist/js",
+    "build": "npm-run-all browserify less html images",
+    "images" : "cp -rf html/images dist/.",
+    "html" : "cp html/memo.html dist/.",
+    "browserify": "browserify html/js/memo.js -o dist/js/aggregated.js",
+    "less": "lessc html/css/memory.less dist/css/memory.css",
+    "start": "node app.js",
+    "watch": "npm-watch"
+  },
+  "dependencies": {
+    "canny": "*",
+    "dnode": "*",
+    "dom-opts": "git://github.com/eightyfour/dom-opts.git",
+    "express": "*",
+    "message-toast": "github:eightyfour/message-toast",
+    "shoe": "*",
+    "socket.io": "*"
+  },
+  "devDependencies": {
+    "browserify": "^13.1.1",
+    "less": "^2.7.1",
+    "npm-run-all": "^3.1.1",
+    "npm-watch": "^0.1.6"
+  }
 }

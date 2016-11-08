@@ -4,5 +4,7 @@ shoe
 socket.io
 express
 .bin
+.idea
+dist
 
 node_modules

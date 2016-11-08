@@ -8,7 +8,7 @@ var express = require('express'),
     app = express(),
     server;
 
-app.use(express.static(__dirname + '/html'));
+app.use(express.static(__dirname + '/dist'));
 
 
 server = app.listen(8000);
